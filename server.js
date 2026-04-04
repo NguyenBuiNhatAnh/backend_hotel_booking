@@ -3,6 +3,7 @@ import cors from 'cors'
 import http from 'http';
 import 'dotenv/config'
 import connectDatabase from './config/mongodb.js';
+import authRouter from './routes/authRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -10,7 +11,15 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
+// Middlewares
+app.use(express.json());
+app.use(cors());
 
+
+const API_PREFIX = process.env.API_PREFIX;
+
+// API endpoints
+app.use(`${API_PREFIX}/auth`, authRouter)
 
 
 app.get('/',(req,res)=>{
