@@ -1,8 +1,8 @@
-import { loginUser, registerUser } from "../services/authService.js";
+import * as authService from "../services/authService.js";
 
 export const register = async (req, res) => {
     try {
-        const user = await registerUser(req.body);
+        const user = await authService.registerUser(req.body);
 
         res.status(201).json({
             message: "Register successful",
@@ -17,7 +17,7 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        const result = await loginUser(req.body)
+        const result = await authService.loginUser(req.body)
 
         res.status(201).json({
             message: "Login successfully",

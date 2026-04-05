@@ -41,7 +41,6 @@ export const loginUser = async (data) => {
     if(!user) {
         throw new Error("Email not found");
     }
-    console.log("1")
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
@@ -49,10 +48,8 @@ export const loginUser = async (data) => {
         throw new Error("Invalid password");
     }
 
-    console.log("2")
     // Generate token
     const token = generateToken(user);
-    console.log("3")
     return {
         token,
         user: {
@@ -61,5 +58,4 @@ export const loginUser = async (data) => {
             role: user.role
         }
     }
-    console.log("4")
 }

@@ -5,7 +5,12 @@ const HotelSchema = new mongoose.Schema({
     address: String,
     city: String,
     description: String,
-    image: [String],
+    image: [
+        {
+            url: String,
+            public_id: String
+        }
+    ],
 
     amenities: [String], // wifi, pool, parking...
 

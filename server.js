@@ -1,9 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 import http from 'http';
-import 'dotenv/config'
+import 'dotenv/config';
 import connectDatabase from './config/mongodb.js';
 import authRouter from './routes/authRoute.js';
+import { hotelRouter } from './routes/hotelRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -20,6 +21,7 @@ const API_PREFIX = process.env.API_PREFIX;
 
 // API endpoints
 app.use(`${API_PREFIX}/auth`, authRouter)
+app.use(`${API_PREFIX}/hotels`, hotelRouter);
 
 
 app.get('/',(req,res)=>{
