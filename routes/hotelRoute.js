@@ -2,10 +2,24 @@ import express from "express"
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { validate } from "../middlewares/validateMiddleware.js";
 import { registerHotelSchema } from "../validator/hotelValidator.js";
-import { registerHotel } from "../controllers/hotelController.js";
+import { getHotelByUserId, registerHotel, updateHotel } from "../controllers/hotelController.js";
 import { upload } from "../middlewares/multerMiddleware.js";
+import { authorizeRoles } from "../middlewares/roleMiddleware.js";
+import { getAllHotel } from "../controllers/hotelController.js";
+import { getHotelById } from "../controllers/hotelController.js";
 
 export const hotelRouter = express.Router();
+
+hotelRouter.get("/", authMiddleware,getAllHotel);
+
+hotelRouter.get("/:id", authMiddleware,getHotelById);
+
+hotelRouter.get(
+    "/me",
+    authMiddleware,
+    authorizeRoles("owner"),
+    getHotelByUserId
+)
 
 hotelRouter.post(
     "/",
@@ -14,3 +28,12 @@ hotelRouter.post(
     validate(registerHotelSchema), // validate sau
     registerHotel
 );
+
+hotelRouter.put(
+    "/me",
+    authMiddleware,
+    // authorizeRoles("owner"),
+    updateHotel
+)
+
+
