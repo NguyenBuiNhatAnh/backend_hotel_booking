@@ -12,14 +12,14 @@ export const hotelRouter = express.Router();
 
 hotelRouter.get("/", authMiddleware,getAllHotel);
 
-hotelRouter.get("/:id", authMiddleware,getHotelById);
-
 hotelRouter.get(
     "/me",
     authMiddleware,
-    authorizeRoles("owner"),
+    authorizeRoles("hotel_manager"),
     getHotelByUserId
 )
+
+hotelRouter.get("/:id", authMiddleware,getHotelById);
 
 hotelRouter.post(
     "/",
@@ -29,11 +29,14 @@ hotelRouter.post(
     registerHotel
 );
 
-hotelRouter.put(
+hotelRouter.patch(
     "/me",
     authMiddleware,
-    // authorizeRoles("owner"),
+    authorizeRoles("hotel_manager"),
     updateHotel
 )
+
+
+
 
 

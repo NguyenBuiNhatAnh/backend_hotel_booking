@@ -5,6 +5,7 @@ import 'dotenv/config';
 import connectDatabase from './config/mongodb.js';
 import authRouter from './routes/authRoute.js';
 import { hotelRouter } from './routes/hotelRoute.js';
+import { adminHotelRoute } from './routes/adminHotelRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -22,6 +23,7 @@ const API_PREFIX = process.env.API_PREFIX;
 // API endpoints
 app.use(`${API_PREFIX}/auth`, authRouter)
 app.use(`${API_PREFIX}/hotels`, hotelRouter);
+app.use(`${API_PREFIX}/admin/hotels`, adminHotelRoute);
 
 
 app.get('/',(req,res)=>{

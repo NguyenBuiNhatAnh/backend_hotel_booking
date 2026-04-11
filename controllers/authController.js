@@ -24,6 +24,8 @@ export const login = async (req, res) => {
             data: result
         })
     } catch (error) {
-        message: error.message
+        return res.status(400).json({   // 🔥 thiếu dòng này
+            message: error.message
+        });
     }
 }

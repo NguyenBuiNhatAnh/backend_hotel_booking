@@ -3,6 +3,7 @@ import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
 
+
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -21,7 +22,7 @@ export const getAllHotel = async (query) => {
     const { city, page = 1, limit = 10 } = query;
 
     const filter = {
-        status: "pending" // chỉ lấy hotel đã duyệt
+        status: "approved" // chỉ lấy hotel đã duyệt
     };
 
     // filter theo city nếu có
@@ -57,7 +58,7 @@ export const getHotelById = async (hotelId) => {
 
     const hotel = await HotelModel.findOne({
         _id: hotelId,
-        status: "aprroved" // chỉ cho public xem hotel đã duyệt
+        status: "approved" // chỉ cho public xem hotel đã duyệt
     });
 
     if (!hotel) {
@@ -155,3 +156,4 @@ export const updateHotel = async (userId, data) => {
 
     return hotel;
 };
+

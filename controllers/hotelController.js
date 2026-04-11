@@ -1,5 +1,7 @@
 import * as hotelService from "../services/hotelService.js";
 
+console.log(hotelService);
+
 export const getHotelById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -61,6 +63,7 @@ export const registerHotel = async (req, res) => {
         );
 
         res.status(201).json({
+            success: true,
             message: "Hotel created. Waiting for admin approval.",
             data: hotel
         });
