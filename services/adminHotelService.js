@@ -5,7 +5,7 @@ import UserModel from "../models/userModel.js";
 // Service to handle hotel approval
 export const approveHotelService = async (hotelId) => {
     const hotel = await HotelModel.findById(hotelId);
-    
+
     if (!hotel) {
         throw new Error("HOTEL_NOT_FOUND");
     }
@@ -43,6 +43,43 @@ export const rejectHotelService = async (hotelId) => {
 
     return hotel;
 };
+
+// Service to handle blocked hotel
+export const blockHotelService = async (hotelId) => {
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    if (hotel.status === "blocked") {
+        throw new Error("HOTEL_ALREADY_BLOCKED")
+    }
+
+    // Update hotel status
+    hotel.status = "blocked";
+    await hotel.save();
+
+    return hotel;
+}
+
+export const unBlockHotelService = async (hotelId) => {
+    const hotel = await HotelModel.findById(hotelId);
+
+    if(!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    if(hotel.status === "blocked") {
+        hotel.status = "approved";
+        await hotel.save();
+    }
+    else {
+        throw new Error("HOTEL_WAS_NOT_BLOCKED");
+    }
+
+    return hotel;
+}
 
 // Service to fetch all hotels for Admin (with filters and pagination)
 export const getHotelsForAdminService = async (query) => {

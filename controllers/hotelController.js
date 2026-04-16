@@ -1,6 +1,5 @@
 import * as hotelService from "../services/hotelService.js";
 
-console.log(hotelService);
 
 export const getHotelById = async (req, res) => {
     try {

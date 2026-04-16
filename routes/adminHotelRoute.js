@@ -1,7 +1,7 @@
 import express from "express"
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
-import { approveHotel, getAllHotelsForAdmin, rejectHotel } from "../controllers/adminHotelController.js";
+import { approveHotel, blockHotel, getAllHotelsForAdmin, rejectHotel, unBlockHotel } from "../controllers/adminHotelController.js";
 
 export const adminHotelRoute = express.Router();
 
@@ -24,4 +24,18 @@ adminHotelRoute.patch(
     authMiddleware,
     authorizeRoles("admin"),
     rejectHotel
+)
+
+adminHotelRoute.patch(
+    "/:hotelId/block",
+    authMiddleware,
+    authorizeRoles("admin"),
+    blockHotel
+)
+
+adminHotelRoute.patch(
+    ":hotelId/unblock",
+    authMiddleware,
+    authorizeRoles("admin"),
+    unBlockHotel
 )
