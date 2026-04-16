@@ -90,3 +90,41 @@ export const updateHotel = async (req, res) => {
         });
     }
 };
+
+// controllers/hotelController.js
+
+export const addHotelImages = async (req, res) => {
+    try {
+        const userId = req.user.id; // cần auth middleware
+        const files = req.files;
+
+        const hotel = await hotelService.addHotelImages(userId, files);
+
+        return res.status(200).json({
+            success: true,
+            message: "Images added successfully",
+            data: hotel
+        });
+
+    } catch (error) {
+        return handleHotelError(res, error);
+    }
+};
+
+export const deleteHotelImage = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { public_id } = req.query;
+
+        const hotel = await hotelService.deleteHotelImage(userId, public_id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Image deleted successfully",
+            data: hotel
+        });
+
+    } catch (error) {
+        return handleHotelError(res, error);
+    }
+};

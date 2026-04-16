@@ -2,7 +2,7 @@ import express from "express"
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { validate } from "../middlewares/validateMiddleware.js";
 import { registerHotelSchema } from "../validator/hotelValidator.js";
-import { getHotelByUserId, registerHotel, updateHotel } from "../controllers/hotelController.js";
+import { addHotelImages, deleteHotelImage, getHotelByUserId, registerHotel, updateHotel } from "../controllers/hotelController.js";
 import { upload } from "../middlewares/multerMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
 import { getAllHotel } from "../controllers/hotelController.js";
@@ -35,6 +35,22 @@ hotelRouter.patch(
     authorizeRoles("hotel_manager"),
     updateHotel
 )
+
+hotelRouter.patch(
+    "/me/images",
+    authMiddleware,
+    authorizeRoles("hotel_manager"),
+    upload.array("images", 10), // multer
+    addHotelImages
+);
+
+hotelRouter.delete(
+    "/me/images",
+    authMiddleware,
+    authorizeRoles("hotel_manager"),
+    deleteHotelImage
+);
+
 
 
 

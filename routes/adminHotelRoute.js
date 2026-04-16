@@ -34,7 +34,7 @@ adminHotelRoute.patch(
 )
 
 adminHotelRoute.patch(
-    ":hotelId/unblock",
+    "/:hotelId/unblock",
     authMiddleware,
     authorizeRoles("admin"),
     unBlockHotel

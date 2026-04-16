@@ -1,7 +1,41 @@
-import HotelModel from "../models/hotelModel.js";
 import * as adminHotelService from "../services/adminHotelService.js";
 
-// [GET] /api/admin/hotels
+const handleHotelError = (res, error) => {
+    const errorMap = {
+        HOTEL_NOT_FOUND: {
+            status: 404,
+            message: "Hotel not found"
+        },
+        HOTEL_IS_NOT_PENDING: {
+            status: 409,
+            message: "Hotel must be in pending status"
+        },
+        HOTEL_ALREADY_BLOCKED: {
+            status: 409,
+            message: "Hotel is already blocked"
+        },
+        HOTEL_WAS_NOT_BLOCKED: {
+            status: 409,
+            message: "Hotel is not blocked"
+        }
+    };
+
+    const err = errorMap[error.message];
+
+    if (err) {
+        return res.status(err.status).json({
+            success: false,
+            message: err.message
+        });
+    }
+
+    console.error(error);
+    return res.status(500).json({
+        success: false,
+        message: "Internal server error"
+    });
+};
+
 export const getAllHotelsForAdmin = async (req, res) => {
     try {
         const result = await adminHotelService.getHotelsForAdminService(req.query);
@@ -15,13 +49,11 @@ export const getAllHotelsForAdmin = async (req, res) => {
         console.error(error);
         return res.status(500).json({
             success: false,
-            message: "Error fetching hotel list",
-            error: error.message
+            message: "Failed to fetch hotels"
         });
     }
 };
 
-// [PATCH] /api/admin/hotels/:hotelId/approve
 export const approveHotel = async (req, res) => {
     try {
         const { hotelId } = req.params;
@@ -29,24 +61,15 @@ export const approveHotel = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Hotel approved successfully! User has been granted manager privileges.",
+            message: "Hotel approved successfully",
             data: hotel
         });
 
     } catch (error) {
-        if (error.message === "HOTEL_NOT_FOUND") {
-            return res.status(404).json({ success: false, message: "Hotel not found!" });
-        }
-        if (error.message === "HOTEL_ALREADY_APPROVED") {
-            return res.status(409).json({ success: false, message: "This hotel is already approved!" });
-        }
-
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+        return handleHotelError(res, error);
     }
 };
 
-// [PATCH] /api/admin/hotels/:hotelId/reject
 export const rejectHotel = async (req, res) => {
     try {
         const { hotelId } = req.params;
@@ -54,17 +77,12 @@ export const rejectHotel = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Hotel rejected successfully!",
+            message: "Hotel rejected successfully",
             data: hotel
         });
 
     } catch (error) {
-        if (error.message === "HOTEL_NOT_FOUND") {
-            return res.status(404).json({ success: false, message: "Hotel not found!" });
-        }
-
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+        return handleHotelError(res, error);
     }
 };
 
@@ -75,42 +93,28 @@ export const blockHotel = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Hotel blocked successfully",
+            message: "Hotel has been blocked",
             data: hotel
-        })
-    }
-    catch (error) {
-        if (error.message === "HOTEL_NOT_FOUND") {
-            return res.status(404).json({ success: false, message: "Hotel not found!" });
-        }
-        if (error.message === "HOTEL_ALREADY_BLOCKED") {
-            return res.status(409).json({ success: false, message: "This hotel is already blocked!" });
-        }
+        });
 
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    } catch (error) {
+        return handleHotelError(res, error);
     }
-}
+};
 
 export const unBlockHotel = async (req, res) => {
     try {
-        const {hotelId} = req.params;
+        const { hotelId } = req.params;
         const hotel = await adminHotelService.unBlockHotelService(hotelId);
 
         return res.status(200).json({
             success: true,
-            message: "Hotel unblocked successfully",
+            message: "Hotel has been unblocked",
             data: hotel
-        })
-    } catch (error) {
-        if (error.message === "HOTEL_NOT_FOUND") {
-            return res.status(404).json({ success: false, message: "Hotel not found!" });
-        }
-        if (error.message === "HOTEL_WAS_NOT_BLOCKED") {
-            return res.status(409).json({ success: false, message: "This hotel was not blocked!" });
-        }
+        });
 
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    } catch (error) {
+        return handleHotelError(res, error);
     }
-}
+};
+

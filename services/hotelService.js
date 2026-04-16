@@ -104,10 +104,6 @@ export const registerHotel = async (data, userId, files) => {
         }
     }
 
-    if (existingHotel) {
-        throw new Error("You already registered a hotel");
-    }
-
     let imageUrls = [];
 
     if (files && files.length > 0) {
@@ -153,6 +149,62 @@ export const updateHotel = async (userId, data) => {
     if (!hotel) {
         throw new Error("Hotel not found");
     }
+
+    return hotel;
+};
+
+export const addHotelImages = async (userId, files) => {
+    const hotel = await HotelModel.findOne({ owner: userId });
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    if (!files || files.length === 0) {
+        throw new Error("NO_FILES_UPLOADED");
+    }
+
+    const uploadPromises = files.map(file =>
+        uploadToCloudinary(file.buffer)
+    );
+
+    const results = await Promise.all(uploadPromises);
+
+    const newImages = results.map(result => ({
+        url: result.secure_url,
+        public_id: result.public_id
+    }));
+
+    // thêm vào mảng ảnh cũ
+    hotel.image.push(...newImages);
+
+    await hotel.save();
+
+    return hotel;
+};
+
+export const deleteHotelImage = async (userId, publicId) => {
+    const hotel = await HotelModel.findOne({ owner: userId });
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    const imageExists = hotel.image.some(img => img.public_id === publicId);
+
+    if (!imageExists) {
+        throw new Error("IMAGE_NOT_FOUND");
+    }
+
+    // xoá trên cloudinary
+    await cloudinary.uploader.destroy(publicId);
+
+    // xoá trong DB
+    hotel.image = hotel.image.filter(
+        img => img.public_id !== publicId
+    );
+
+    await hotel.save();
 
     return hotel;
 };
