@@ -11,7 +11,12 @@ const RoomSchema = new mongoose.Schema({
     price: Number,
     capacity: Number, // số người
 
-    images: [String],
+    images: [
+        {
+            url: String,
+            public_id: String
+        }
+    ],
 
     quantity: Number, // sô phòng loại này
 
