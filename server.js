@@ -7,6 +7,7 @@ import authRouter from './routes/authRoute.js';
 import { hotelRouter } from './routes/hotelRoute.js';
 import { adminHotelRoute } from './routes/adminHotelRoute.js';
 import roomRouter from './routes/roomRoute.js';
+import userRouter from './routes/userRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -26,6 +27,7 @@ app.use(`${API_PREFIX}/auth`, authRouter)
 app.use(`${API_PREFIX}/hotels`, hotelRouter);
 app.use(`${API_PREFIX}/admin/hotels`, adminHotelRoute);
 app.use(`${API_PREFIX}/rooms`, roomRouter);
+app.use(`${API_PREFIX}/users`, userRouter);
 
 
 app.get('/',(req,res)=>{
