@@ -10,7 +10,7 @@ import { getHotelById } from "../controllers/hotelController.js";
 
 export const hotelRouter = express.Router();
 
-hotelRouter.get("/", authMiddleware,getAllHotel);
+hotelRouter.get("/", getAllHotel);
 
 hotelRouter.get(
     "/me",
@@ -19,7 +19,7 @@ hotelRouter.get(
     getHotelByUserId
 )
 
-hotelRouter.get("/:id", authMiddleware,getHotelById);
+hotelRouter.get("/:id", getHotelById);
 
 hotelRouter.post(
     "/",

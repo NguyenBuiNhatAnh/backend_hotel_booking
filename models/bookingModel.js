@@ -5,47 +5,45 @@ const BookingSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-
     hotel: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Hotel"
     },
-
-    room: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Room"
-    },
-
+    rooms: [{
+        room: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Room"
+        },
+        pricePerNight: Number,
+        quantity: Number,
+        totalPrice: Number
+    }],
     checkInDate: Date,
     checkOutDate: Date,
-
     guests: Number,
-
     services: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Service"
+        service: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Service"
+        },
+        name: String,
+        unitPrice: Number,
+        quantity: Number,
+        totalPrice: Number
     }],
-
-    totalPrice: Number,
-
+    roomPrice: Number,      // tổng tiền phòng
+    servicePrice: Number,   // tổng tiền dịch vụ
+    totalPrice: Number,     // roomPrice + servicePrice
     status: {
         type: String,
-        enum : [
-            "pending",
-            "confirmed",
-            "checked_in",
-            "completed",
-            "canceled"
-        ],
+        enum: ["pending", "confirmed", "checked_in", "completed", "canceled"],
         default: "pending"
     },
-
     paymentStatus: {
         type: String,
         enum: ["unpaid", "paid", "refunded"],
         default: "unpaid"
     },
-
     createdAt: {
         type: Date,
         default: Date.now
