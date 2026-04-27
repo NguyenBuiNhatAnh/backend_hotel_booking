@@ -9,6 +9,7 @@ import { adminHotelRoute } from './routes/adminHotelRoute.js';
 import roomRouter from './routes/roomRoute.js';
 import userRouter from './routes/userRoute.js';
 import { serviceRouter } from './routes/serviceRoute.js';
+import bookingRouter from './routes/bookingRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -30,10 +31,23 @@ app.use(`${API_PREFIX}/admin/hotels`, adminHotelRoute);
 app.use(`${API_PREFIX}/rooms`, roomRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/services`, serviceRouter);
+app.use(`${API_PREFIX}/bookings`, bookingRouter);
 
 
 app.get('/',(req,res)=>{
     res.send("API Working");
+});
+
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, message: 'Invalid JSON body' });
+  }
+
+  // Các lỗi khác
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
 });
 
 
@@ -41,3 +55,4 @@ app.get('/',(req,res)=>{
 connectDatabase();
 
 server.listen(PORT, () => console.log("Server is running on PORT: " + PORT));
+

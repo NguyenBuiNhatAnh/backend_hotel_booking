@@ -2,8 +2,15 @@ import mongoose from "mongoose";
 
 const HotelSchema = new mongoose.Schema({
     name: String,
-    address: String,
-    city: String,
+    address: {
+        street: String,     // Số nhà, tên đường
+        ward: String,       // Phường/Quận/Xã tùy nơi
+        city: {
+            type: String,
+            required: true,
+            index: true     // Tỉnh/Thành phố
+        }
+    },
     description: String,
     image: [
         {

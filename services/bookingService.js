@@ -1,0 +1,230 @@
+import BookingModel from "../models/bookingModel.js";
+import RoomModel from "../models/roomModel.js";
+import ServiceModel from "../models/serviceModel.js";
+import mongoose from "mongoose";
+
+// ============================================================
+// Tính số phòng đã được đặt trong khoảng thời gian
+// ============================================================
+const getBookedQuantity = async (roomId, checkInDate, checkOutDate, session = null) => {
+    const query = BookingModel.find({
+        status: { $nin: ["canceled"] },
+        checkInDate: { $lt: checkOutDate },
+        checkOutDate: { $gt: checkInDate },
+        "rooms.room": roomId
+    });
+
+    if (session) query.session(session);
+
+    const bookings = await query;
+
+    return bookings.reduce((total, booking) => {
+        const roomEntry = booking.rooms.find(r => r.room.toString() === roomId.toString());
+        return total + (roomEntry?.quantity || 0);
+    }, 0);
+};
+
+// ============================================================
+// Check số phòng còn trống (dùng cho trang xem phòng)
+// ============================================================
+export const getRoomAvailability = async (roomId, checkInDate, checkOutDate) => {
+    const room = await RoomModel.findById(roomId);
+    if (!room) throw new Error("Room not found");
+
+    const bookedQuantity = await getBookedQuantity(roomId, checkInDate, checkOutDate);
+    const availableQuantity = room.quantity - bookedQuantity;
+
+    return {
+        roomId,
+        totalQuantity: room.quantity,
+        bookedQuantity,
+        availableQuantity,
+        checkInDate,
+        checkOutDate,
+        isAvailable: availableQuantity > 0
+    };
+};
+
+// ============================================================
+// Tạo booking
+// ============================================================
+export const createBookingService = async (data, retries = 3) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { userId, hotelId, rooms, checkInDate, checkOutDate, guests, services = [] } = data;
+
+        const checkIn = new Date(checkInDate);
+        const checkOut = new Date(checkOutDate);
+
+        if (checkIn >= checkOut) throw new Error("Check-out phải sau check-in");
+
+        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+        const roomDetails = [];
+        let roomPrice = 0;
+
+        for (const { roomId, quantity } of rooms) {
+            const room = await RoomModel.findById(roomId).session(session);
+            if (!room) throw new Error(`Phòng ${roomId} không tồn tại`);
+            if (room.hotel.toString() !== hotelId) throw new Error(`Phòng ${roomId} không thuộc khách sạn này`);
+
+            const bookedQuantity = await getBookedQuantity(roomId, checkIn, checkOut, session);
+            const availableQuantity = room.quantity - bookedQuantity;
+
+            if (quantity > availableQuantity) {
+                throw new Error(
+                    availableQuantity === 0
+                        ? `Phòng "${room.name}" đã hết trong khoảng thời gian này`
+                        : `Phòng "${room.name}" chỉ còn ${availableQuantity} phòng trống`
+                );
+            }
+
+            const totalRoomPrice = room.price * quantity * nights;
+            roomPrice += totalRoomPrice;
+
+            roomDetails.push({
+                room: roomId,
+                pricePerNight: room.price,
+                quantity,
+                totalPrice: totalRoomPrice
+            });
+        }
+
+        const serviceDetails = [];
+        let servicePrice = 0;
+
+        for (const { serviceId, quantity = 1 } of services) {
+            const service = await ServiceModel.findById(serviceId).session(session);
+            if (!service) throw new Error(`Dịch vụ ${serviceId} không tồn tại`);
+            if (service.hotel.toString() !== hotelId) throw new Error(`Dịch vụ không thuộc khách sạn này`);
+
+            const qty = service.hasQuantity ? quantity : 1;
+            const totalServicePrice = service.price * qty;
+            servicePrice += totalServicePrice;
+
+            serviceDetails.push({
+                service: serviceId,
+                name: service.name,
+                unitPrice: service.price,
+                quantity: qty,
+                totalPrice: totalServicePrice
+            });
+        }
+
+        const [booking] = await BookingModel.create([{
+            user: userId,
+            hotel: hotelId,
+            rooms: roomDetails,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            guests,
+            services: serviceDetails,
+            roomPrice,
+            servicePrice,
+            totalPrice: roomPrice + servicePrice
+        }], { session });
+
+        await session.commitTransaction();
+        return booking;
+
+    } catch (error) {
+        await session.abortTransaction();
+
+        // WriteConflict → retry
+        if (error.code === 112 && retries > 0) {
+            session.endSession();
+            console.log(`WriteConflict, thử lại... còn ${retries} lần`);
+            await new Promise(r => setTimeout(r, 100)); // chờ 100ms trước khi retry
+            return createBookingService(data, retries - 1);
+        }
+
+        throw error;
+
+    } finally {
+        if (session.inTransaction() || !session.hasEnded) {
+            session.endSession();
+        }
+    }
+};
+
+// ============================================================
+// Lấy danh sách booking của user
+// ============================================================
+export const getMyBookingsService = async (userId, query) => {
+    const { status, page = 1, limit = 10 } = query;
+
+    const filter = { user: userId };
+    if (status) filter.status = status;
+
+    const skip = (page - 1) * Number(limit);
+
+    const [bookings, total] = await Promise.all([
+        BookingModel.find(filter)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ createdAt: -1 })
+            .populate("hotel", "name address image")
+            .populate("rooms.room", "name images")
+            .populate("services.service", "name"),
+        BookingModel.countDocuments(filter)
+    ]);
+
+    return {
+        bookings,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / Number(limit))
+        }
+    };
+};
+
+// ============================================================
+// Lấy chi tiết 1 booking
+// ============================================================
+export const getBookingByIdService = async (bookingId, userId) => {
+    const booking = await BookingModel.findById(bookingId)
+        .populate("hotel", "name address image checkInTime checkOutTime")
+        .populate("rooms.room", "name images amenities")
+        .populate("services.service", "name unit");
+
+    if (!booking) throw new Error("Booking không tồn tại");
+
+    // Chỉ cho xem booking của chính mình
+    if (booking.user.toString() !== userId.toString()) {
+        throw new Error("Bạn không có quyền xem booking này");
+    }
+
+    return booking;
+};
+
+// ============================================================
+// Hủy booking
+// ============================================================
+export const cancelBookingService = async (bookingId, userId) => {
+    const booking = await BookingModel.findById(bookingId);
+
+    if (!booking) throw new Error("Booking không tồn tại");
+
+    if (booking.user.toString() !== userId.toString()) {
+        throw new Error("Bạn không có quyền hủy booking này");
+    }
+
+    if (!["pending", "confirmed"].includes(booking.status)) {
+        throw new Error(`Không thể hủy booking ở trạng thái "${booking.status}"`);
+    }
+
+    // Không cho hủy nếu còn ít hơn 24h đến check-in
+    const hoursUntilCheckIn = (new Date(booking.checkInDate) - new Date()) / (1000 * 60 * 60);
+    if (hoursUntilCheckIn < 24) {
+        throw new Error("Không thể hủy booking trong vòng 24h trước check-in");
+    }
+
+    booking.status = "canceled";
+    await booking.save();
+
+    return booking;
+};

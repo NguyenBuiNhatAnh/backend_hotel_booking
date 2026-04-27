@@ -19,7 +19,7 @@ export const getHotelById = async (req, res) => {
     }
 };
 
-export const getAllHotel = async (req, res) => {
+export const getAllHotels = async (req, res) => {
     try {
         const result = await hotelService.getAllHotel(req.query);
 
@@ -35,7 +35,7 @@ export const getAllHotel = async (req, res) => {
     }
 };
 
-export const getHotelByUserId = async (req, res) => {
+export const getMyHotel = async (req, res) => {
     try {
         const userId = req.user.id;
 
@@ -68,6 +68,7 @@ export const registerHotel = async (req, res) => {
         });
     } catch (error) {
         res.status(400).json({
+            success: false,
             message: error.message
         });
     }

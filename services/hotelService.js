@@ -3,7 +3,6 @@ import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
 
-
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -13,7 +12,6 @@ const uploadToCloudinary = (fileBuffer) => {
                 else resolve(result);
             }
         );
-
         streamifier.createReadStream(fileBuffer).pipe(stream);
     });
 };
@@ -21,13 +19,11 @@ const uploadToCloudinary = (fileBuffer) => {
 export const getAllHotel = async (query) => {
     const { city, page = 1, limit = 10 } = query;
 
-    const filter = {
-        status: "approved" // chỉ lấy hotel đã duyệt
-    };
+    const filter = { status: "approved" };
 
-    // filter theo city nếu có
+    // fix: lọc theo address.city thay vì city
     if (city) {
-        filter.city = { $regex: city, $options: "i" }; // không phân biệt hoa thường
+        filter["address.city"] = { $regex: city, $options: "i" };
     }
 
     const skip = (page - 1) * limit;
@@ -51,14 +47,13 @@ export const getAllHotel = async (query) => {
 };
 
 export const getHotelById = async (hotelId) => {
-    // validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(hotelId)) {
         throw new Error("Invalid hotelId");
     }
 
     const hotel = await HotelModel.findOne({
         _id: hotelId,
-        status: "approved" // chỉ cho public xem hotel đã duyệt
+        status: "approved"
     });
 
     if (!hotel) {
@@ -69,37 +64,29 @@ export const getHotelById = async (hotelId) => {
 };
 
 export const getHotelByUserId = async (userId) => {
-    // Check xem có tìm thấy hotel với userID không
     const hotel = await HotelModel.findOne({ owner: userId });
 
-    if(!hotel) {
+    if (!hotel) {
         throw new Error("Hotel not found for this user");
     }
 
     return hotel;
-
-}
+};
 
 export const registerHotel = async (data, userId, files) => {
-
-    // Check xem user đã tạo Hotel chưa
     const existingHotel = await HotelModel.findOne({ owner: userId });
 
     if (existingHotel) {
         if (existingHotel.status === "pending") {
             throw new Error("Your hotel is waiting for approval");
         }
-
         if (existingHotel.status === "approved") {
             throw new Error("You already have a hotel");
         }
-
         if (existingHotel.status === "blocked") {
             throw new Error("Your hotel is blocked");
         }
-
         if (existingHotel.status === "rejected") {
-            // Cho tạo lại → xóa hotel cũ hoặc update
             await HotelModel.deleteOne({ _id: existingHotel._id });
         }
     }
@@ -107,12 +94,9 @@ export const registerHotel = async (data, userId, files) => {
     let imageUrls = [];
 
     if (files && files.length > 0) {
-        const uploadPromises = files.map(file =>
-            uploadToCloudinary(file.buffer)
+        const results = await Promise.all(
+            files.map(file => uploadToCloudinary(file.buffer))
         );
-
-        const results = await Promise.all(uploadPromises);
-
         imageUrls = results.map(result => ({
             url: result.secure_url,
             public_id: result.public_id
@@ -121,6 +105,7 @@ export const registerHotel = async (data, userId, files) => {
 
     const newHotel = await HotelModel.create({
         ...data,
+        // address đã là object { street, ward, city } từ body
         image: imageUrls,
         owner: userId,
         status: "pending"
@@ -133,16 +118,21 @@ export const updateHotel = async (userId, data) => {
     const updateData = {};
 
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.address !== undefined) updateData.address = data.address;
-    if (data.city !== undefined) updateData.city = data.city;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.amenities !== undefined) updateData.amenities = data.amenities;
     if (data.checkInTime !== undefined) updateData.checkInTime = data.checkInTime;
     if (data.checkOutTime !== undefined) updateData.checkOutTime = data.checkOutTime;
 
+    // fix: update từng field của address riêng tránh ghi đè cả object
+    if (data.address) {
+        if (data.address.street !== undefined) updateData["address.street"] = data.address.street;
+        if (data.address.ward !== undefined) updateData["address.ward"] = data.address.ward;
+        if (data.address.city !== undefined) updateData["address.city"] = data.address.city;
+    }
+
     const hotel = await HotelModel.findOneAndUpdate(
         { owner: userId },
-        { $set: updateData }, // 🔥 luôn dùng $set
+        { $set: updateData },
         { new: true }
     );
 
@@ -156,28 +146,19 @@ export const updateHotel = async (userId, data) => {
 export const addHotelImages = async (userId, files) => {
     const hotel = await HotelModel.findOne({ owner: userId });
 
-    if (!hotel) {
-        throw new Error("HOTEL_NOT_FOUND");
-    }
+    if (!hotel) throw new Error("HOTEL_NOT_FOUND");
+    if (!files || files.length === 0) throw new Error("NO_FILES_UPLOADED");
 
-    if (!files || files.length === 0) {
-        throw new Error("NO_FILES_UPLOADED");
-    }
-
-    const uploadPromises = files.map(file =>
-        uploadToCloudinary(file.buffer)
+    const results = await Promise.all(
+        files.map(file => uploadToCloudinary(file.buffer))
     );
-
-    const results = await Promise.all(uploadPromises);
 
     const newImages = results.map(result => ({
         url: result.secure_url,
         public_id: result.public_id
     }));
 
-    // thêm vào mảng ảnh cũ
     hotel.image.push(...newImages);
-
     await hotel.save();
 
     return hotel;
@@ -186,26 +167,15 @@ export const addHotelImages = async (userId, files) => {
 export const deleteHotelImage = async (userId, publicId) => {
     const hotel = await HotelModel.findOne({ owner: userId });
 
-    if (!hotel) {
-        throw new Error("HOTEL_NOT_FOUND");
-    }
+    if (!hotel) throw new Error("HOTEL_NOT_FOUND");
 
     const imageExists = hotel.image.some(img => img.public_id === publicId);
+    if (!imageExists) throw new Error("IMAGE_NOT_FOUND");
 
-    if (!imageExists) {
-        throw new Error("IMAGE_NOT_FOUND");
-    }
-
-    // xoá trên cloudinary
     await cloudinary.uploader.destroy(publicId);
 
-    // xoá trong DB
-    hotel.image = hotel.image.filter(
-        img => img.public_id !== publicId
-    );
-
+    hotel.image = hotel.image.filter(img => img.public_id !== publicId);
     await hotel.save();
 
     return hotel;
 };
-

@@ -23,6 +23,42 @@ const ALLOWED_TRANSITIONS = {
   [HOTEL_STATUS.REJECTED]: [],
 };
 
+export const getHotelsForAdminService = async (query) => {
+    const { city, status, page = 1, limit = 10 } = query;
+
+    const filter = {};
+
+    if (city) {
+        filter["address.city"] = { $regex: city, $options: "i" };
+    }
+
+    // Lọc theo status, nếu không truyền thì lấy tất cả
+    if (status) {
+        filter.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [hotels, total] = await Promise.all([
+        HotelModel.find(filter)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ createdAt: -1 })
+            .populate("owner", "name email"), // admin cần biết chủ khách sạn
+        HotelModel.countDocuments(filter)
+    ]);
+
+    return {
+        hotels,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        }
+    };
+};
+
 const canTransition = (from, to) => {
   return ALLOWED_TRANSITIONS[from]?.includes(to);
 };
