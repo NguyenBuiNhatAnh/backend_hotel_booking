@@ -2,16 +2,14 @@ import mongoose from "mongoose";
 
 const ServiceSchema = new mongoose.Schema({
     hotel: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel" },
-    name: String,
-    price: Number,
-    description: String,        // fix typo: decscription → description
-    hasQuantity: {              // true = cho nhập số lượng, false = chỉ chọn có/không
-        type: Boolean,
-        default: true
-    },
-    unit: {                     // "người", "đêm", "lượt", "cái"
+    name: String,           // "Bữa sáng", "Thuê xe máy"
+    price: Number,          // giá 1 đơn vị
+    description: String,
+    unit: String,           // "lượt", "xe/ngày", "người/ngày"
+    chargeType: {
         type: String,
-        default: "lượt"
+        enum: ["one_time", "per_night", "per_person_per_night"],
+        required: true
     }
 });
 

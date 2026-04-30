@@ -22,13 +22,15 @@ const BookingSchema = new mongoose.Schema({
     checkOutDate: Date,
     guests: Number,
     services: [{
-        service: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Service"
-        },
+        service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
         name: String,
+        chargeType: {
+            type: String,
+            enum: ["one_time", "per_night"]
+        },     // lưu lại để hiển thị sau
         unitPrice: Number,
         quantity: Number,
+        numberOfDays: Number,
         totalPrice: Number
     }],
     roomPrice: Number,      // tổng tiền phòng

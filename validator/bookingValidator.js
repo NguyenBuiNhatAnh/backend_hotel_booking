@@ -16,7 +16,8 @@ export const createBookingSchema = Joi.object({
     services: Joi.array().items(
         Joi.object({
             serviceId: Joi.string().required(),
-            quantity: Joi.number().integer().min(1).default(1)
+            quantity: Joi.number().integer().min(1).optional(),      // one_time, per_night
+            numberOfDays: Joi.number().integer().min(1).optional()   // per_person_per_night
         })
     ).optional()
 }).required();

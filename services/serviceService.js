@@ -16,8 +16,8 @@ export const addService = async (userId, data) => {
         name: data.name,
         price: data.price,
         description: data.description,
-        hasQuantity: data.hasQuantity ?? true,
-        unit: data.unit ?? "lượt"
+        unit: data.unit,
+        chargeType: data.chargeType  // thay hasQuantity bằng chargeType
     });
 
     return service;

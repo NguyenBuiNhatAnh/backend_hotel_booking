@@ -1,0 +1,3 @@
+- Cần test lại phần booking, chuẩn bị sửa lại api get hoặc gì đó để làm phần lọc khách sạn, cần để ý là lọc sâu đến level phòng
+mà tương ứng với phần khách hàng muốn
+- Khi ấn vào khách sạn thì chỉ hiện những tất cả các phòng và hiện số lượng còn lại của các phòng đó
