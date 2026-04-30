@@ -3,6 +3,38 @@ import RoomModel from "../models/roomModel.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
+import { getRoomAvailability } from "./bookingService.js";
+
+export const updateHotelPriceRange = async (hotelId) => {
+    const result = await RoomModel.aggregate([
+        {
+            $match: {
+                hotel: hotelId,
+            }
+        },
+        {
+            $group: {
+                _id: "$hotel",
+                minPrice: { $min: "$price" },
+                maxPrice: { $max: "$price" }
+            }
+        }
+    ]);
+
+    const data = result.length > 0
+        ? {
+            minPrice: result[0].minPrice,
+            maxPrice: result[0].maxPrice
+        }
+        : {
+            minPrice: null,
+            maxPrice: null
+        };
+
+    await HotelModel.findByIdAndUpdate(hotelId, data);
+
+    return data;
+};
 
 export const createRoom = async (userId, data) => {
 
@@ -21,6 +53,8 @@ export const createRoom = async (userId, data) => {
         hotel: hotel._id,
         images: []
     });
+
+    await updateHotelPriceRange(hotel._id);
 
     return room;
 
@@ -110,18 +144,29 @@ export const deleteRoomImage = async (userId, roomId, public_id) => {
     return room;
 };
 
-export const getRoomsByHotel = async (hotelId) => {
+export const getRoomsByHotel = async (hotelId, checkIn, checkOut) => {
 
-    const rooms = await RoomModel.find({ hotel: hotelId })
-        .select("name price capacity quantity images");
+    const rooms = await RoomModel.find({ hotel: hotelId });
 
-    // map về dạng summary
-    const result = rooms.map(room => ({
-        _id: room._id,
-        name: room.name,
-        price: room.price,
-        capacity: room.capacity,
-    }));
+    const result = await Promise.all(
+        rooms.map(async (room) => {
+            const availability = await getRoomAvailability(
+                room._id,
+                checkIn,
+                checkOut
+            );
+
+            return {
+                _id: room._id,
+                name: room.name,
+                price: room.price,
+                capacity: room.capacity,
+                totalQuantity: room.quantity,
+                availableQuantity: availability.availableQuantity,
+                isAvailable: availability.isAvailable
+            };
+        })
+    );
 
     return result;
 };
@@ -155,6 +200,8 @@ export const updateRoom = async (userId, roomId, data) => {
         throw new Error("FORBIDDEN");
     }
 
+    const oldPrice = room.price;
+
     // 🔥 whitelist field
     const allowedFields = [
         "name",
@@ -172,6 +219,11 @@ export const updateRoom = async (userId, roomId, data) => {
     });
 
     await room.save();
+
+    if (data.price !== undefined && data.price !== oldPrice) {
+        await updateHotelPriceRange(room.hotel._id);
+    }
+
 
     return room;
 };
@@ -198,6 +250,8 @@ export const deleteRoom = async (userId, roomId) => {
     }
 
     await RoomModel.findByIdAndDelete(roomId);
+
+    await updateHotelPriceRange(room.hotel._id);
 
     return true;
 };

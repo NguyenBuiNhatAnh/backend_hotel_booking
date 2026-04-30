@@ -38,6 +38,16 @@ const HotelSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+
+    minPrice: {
+        type: Number,
+        default: null
+    },
+
+    maxPrice: {
+        type: Number,
+        default: null
     }
 });
 

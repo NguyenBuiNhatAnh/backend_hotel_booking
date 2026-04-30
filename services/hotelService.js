@@ -17,31 +17,118 @@ const uploadToCloudinary = (fileBuffer) => {
 };
 
 export const getAllHotel = async (query) => {
-    const { city, page = 1, limit = 10 } = query;
+    const {
+        city,
+        checkInDate,
+        checkOutDate,
+        guests,
+        minPrice,
+        maxPrice,
+        amenities,
+        page = 1,
+        limit = 10
+    } = query;
 
-    const filter = { status: "approved" };
+    const matchHotel = { status: "approved" };
 
-    // fix: lọc theo address.city thay vì city
+    // 📍 Lọc địa điểm
     if (city) {
-        filter["address.city"] = { $regex: city, $options: "i" };
+        matchHotel["address.city"] = { $regex: city, $options: "i" };
     }
 
-    const skip = (page - 1) * limit;
+    // 🏨 Lọc tiện ích
+    if (amenities) {
+        const amenityList = amenities.split(",").map(a => a.trim());
+        matchHotel.amenities = { $all: amenityList };
+    }
 
-    const hotels = await HotelModel.find(filter)
-        .skip(skip)
-        .limit(Number(limit))
+    // 💰 Lọc giá (dùng trực tiếp hotel.minPrice / maxPrice)
+    if (minPrice || maxPrice) {
+        const priceConditions = [];
+
+        if (minPrice) {
+            priceConditions.push({ maxPrice: { $gte: Number(minPrice) } });
+        }
+
+        if (maxPrice) {
+            priceConditions.push({ minPrice: { $lte: Number(maxPrice) } });
+        }
+
+        matchHotel.$and = priceConditions;
+    }
+
+    const hasDateFilter = checkInDate && checkOutDate;
+    const checkIn = hasDateFilter ? new Date(checkInDate) : null;
+    const checkOut = hasDateFilter ? new Date(checkOutDate) : null;
+
+    // 🔥 Lọc hotel trước → giảm dataset
+    const hotels = await HotelModel.find(matchHotel)
         .sort({ createdAt: -1 });
 
-    const total = await HotelModel.countDocuments(filter);
+    const result = [];
+
+    for (const hotel of hotels) {
+
+        // 🎯 chỉ filter room theo guests (không filter price nữa)
+        const roomQuery = { hotel: hotel._id };
+
+        if (guests) {
+            roomQuery.capacity = { $gte: Number(guests) };
+        }
+
+        const rooms = await RoomModel.find(roomQuery);
+
+        if (rooms.length === 0) continue;
+
+        if (hasDateFilter) {
+            const availableRooms = [];
+
+            for (const room of rooms) {
+                const bookedQty = await getBookedQuantity(
+                    room._id,
+                    checkIn,
+                    checkOut
+                );
+
+                const availableQty = room.quantity - bookedQty;
+
+                if (availableQty > 0) {
+                    availableRooms.push({
+                        _id: room._id,
+                        name: room.name,
+                        price: room.price,
+                        capacity: room.capacity,
+                        availableQuantity: availableQty
+                    });
+                }
+            }
+
+            if (availableRooms.length === 0) continue;
+
+            result.push({
+                ...hotel.toObject(),
+                availableRooms
+            });
+
+        } else {
+            result.push({
+                ...hotel.toObject()
+            });
+        }
+    }
+
+    // 📄 Pagination
+    const total = result.length;
+    const skip = (Number(page) - 1) * Number(limit);
+    const paginated = result.slice(skip, skip + Number(limit));
 
     return {
-        hotels,
+        hotels: paginated,
         pagination: {
             total,
             page: Number(page),
             limit: Number(limit),
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(total / Number(limit))
         }
     };
 };
