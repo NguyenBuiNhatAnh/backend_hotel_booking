@@ -10,6 +10,7 @@ import roomRouter from './routes/roomRoute.js';
 import userRouter from './routes/userRoute.js';
 import { serviceRouter } from './routes/serviceRoute.js';
 import bookingRouter from './routes/bookingRoute.js';
+import paymentRouter from './routes/paymentRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -32,6 +33,7 @@ app.use(`${API_PREFIX}/rooms`, roomRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/services`, serviceRouter);
 app.use(`${API_PREFIX}/bookings`, bookingRouter);
+app.use(`${API_PREFIX}/payments`, paymentRouter);
 
 
 app.get('/',(req,res)=>{

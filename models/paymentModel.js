@@ -10,12 +10,13 @@ const PaymentSchema = new mongoose.Schema({
 
     method: {
         type: String,
-        enum: ["vnpay", "momo", "cod"]
+        enum: ["vnpay"]
     },
 
     status: {
         type: String,
-        enum: ["pending", "success", "failed"]
+        enum: ["pending", "success", "failed"],  // ← thêm "pending" vào đây
+        default: "pending"
     },
 
     transactionId: String,

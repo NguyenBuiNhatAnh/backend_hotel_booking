@@ -43,9 +43,31 @@ const BookingSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ["unpaid", "paid", "refunded"],
+        enum: ["unpaid", "paid"],
         default: "unpaid"
     },
+
+    expiredAt: {
+        type: Date,
+        default: null
+    },
+
+    cancelReason: {
+        type: String,
+        default: null
+    },
+
+    canceledBy: {
+        type: String,
+        enum: ["user", "system"],
+        default: null
+    },
+
+    paidAt: {
+        type: Date,
+        default: null
+    },
+
     createdAt: {
         type: Date,
         default: Date.now

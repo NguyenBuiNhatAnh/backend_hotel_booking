@@ -132,15 +132,15 @@ export const createBookingService = async (data, retries = 3) => {
 
             servicePrice += totalServicePrice;
 
-            const numberOfDays = item.numberOfDays
-
             serviceDetails.push({
                 service: item.serviceId,
                 name: service.name,
                 chargeType: service.chargeType,
                 unitPrice: service.price,
                 quantity,
-                ...(service.chargeType === "per_night" && { numberOfDays }),
+                ...(service.chargeType === "per_night" && {
+                    numberOfDays: item.numberOfDays ?? nights  // ← dùng trực tiếp
+                }),
                 totalPrice: totalServicePrice
             });
         }
@@ -155,7 +155,8 @@ export const createBookingService = async (data, retries = 3) => {
             services: serviceDetails,
             roomPrice,
             servicePrice,
-            totalPrice: roomPrice + servicePrice
+            totalPrice: roomPrice + servicePrice,
+            expiredAt: new Date(Date.now() + 10 * 60 * 1000)
         }], { session });
 
         await session.commitTransaction();
@@ -175,9 +176,7 @@ export const createBookingService = async (data, retries = 3) => {
         throw error;
 
     } finally {
-        if (session.inTransaction() || !session.hasEnded) {
             session.endSession();
-        }
     }
 };
 

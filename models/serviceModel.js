@@ -8,7 +8,7 @@ const ServiceSchema = new mongoose.Schema({
     unit: String,           // "lượt", "xe/ngày", "người/ngày"
     chargeType: {
         type: String,
-        enum: ["one_time", "per_night", "per_person_per_night"],
+        enum: ["one_time", "per_night"],
         required: true
     }
 });
