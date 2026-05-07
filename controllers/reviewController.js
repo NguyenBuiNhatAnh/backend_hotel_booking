@@ -1,6 +1,6 @@
 // review.controller.js
 import { createReviewService, getHotelReviewsService } from "../services/reviewService.js";
-import { createReviewSchema } from "../validators/reviewValidator.js";
+import { createReviewSchema } from "../validator/reviewValidator.js";
 
 export const createReview = async (req, res) => {
     try {
