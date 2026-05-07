@@ -11,7 +11,16 @@ const ReviewSchema = new mongoose.Schema({
         ref: "Hotel"
     },
 
-    rating: Number, // 1-5 sao
+    booking: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Booking"
+    },
+
+    rating: {
+        type: Number,
+        min: 0,
+        max: 5
+    }, // 1-5 sao
     comment: String,
 
     createdAt: {

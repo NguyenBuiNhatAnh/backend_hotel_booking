@@ -48,6 +48,18 @@ const HotelSchema = new mongoose.Schema({
     maxPrice: {
         type: Number,
         default: null
+    },
+
+    avgRating: {
+        type: Number,
+        default: null,
+        min: 0,
+        max: 5
+    },
+
+    totalReviews: {
+        type: Number,
+        default: null
     }
 });
 

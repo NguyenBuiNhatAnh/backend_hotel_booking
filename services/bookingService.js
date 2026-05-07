@@ -2,6 +2,7 @@ import BookingModel from "../models/bookingModel.js";
 import RoomModel from "../models/roomModel.js";
 import HotelModel from "../models/hotelModel.js";
 import ServiceModel from "../models/serviceModel.js";
+import UserModel from "../models/userModel.js";
 import mongoose from "mongoose";
 
 // ============================================================
@@ -178,6 +179,7 @@ export const createBookingService = async (data) => {
                 chargeType: service.chargeType,
                 unitPrice: service.price,
                 quantity,
+                numberOfDays: item.numberOfDays,
                 totalPrice: totalServicePrice,
                 status: "pending"
             });
@@ -513,4 +515,151 @@ export const createManagerBookingService = async (data) => {
         session.endSession();
 
     }
+};
+
+// Luồng 1: Danh sách theo ngày + status
+export const getTodayBookingsService = async (managerId, query) => {
+    const { status, date, page = 1, limit = 20 } = query;
+
+    const hotel = await HotelModel.findOne({ owner: managerId });
+    if (!hotel) throw new Error("Bạn chưa có khách sạn");
+
+    // Mặc định là hôm nay nếu không truyền date
+    const targetDate = date ? new Date(date) : new Date();
+    const start = new Date(targetDate.setHours(0, 0, 0, 0));
+    const end   = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const filter = {
+        hotel: hotel._id,
+        checkInDate: { $gte: start, $lte: end }
+    };
+
+    if (status) filter.status = status;
+
+    const skip = (page - 1) * Number(limit);
+
+    const fields = "_id guestInfo checkInDate checkOutDate status paymentStatus rooms.roomTypeName rooms.quantity";
+
+    const [bookings, total] = await Promise.all([
+        BookingModel.find(filter)
+            .select(fields)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ checkInDate: 1 })
+            .populate("rooms.room", "name")
+            .populate("user", "name email phone"),
+        BookingModel.countDocuments(filter)
+    ]);
+
+    return {
+        bookings,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / Number(limit))
+        }
+    };
+};
+
+// Luồng 2: Search theo SĐT / tên / mã booking
+export const searchBookingService = async (managerId, query) => {
+    const { keyword, status, page = 1, limit = 10 } = query;
+
+    if (!keyword) throw new Error("Vui lòng nhập từ khóa tìm kiếm");
+
+    const hotel = await HotelModel.findOne({ owner: managerId });
+    if (!hotel) throw new Error("Bạn chưa có khách sạn");
+
+    const filter = { hotel: hotel._id };
+
+    if (status) filter.status = status;
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(keyword);
+
+    if (isObjectId) {
+        filter._id = keyword;
+    } else {
+        filter.$or = [
+            { "guestInfo.phone":     { $regex: keyword, $options: "i" } },
+            { "guestInfo.firstName": { $regex: keyword, $options: "i" } },
+            { "guestInfo.lastName":  { $regex: keyword, $options: "i" } },
+            { "guestInfo.email":     { $regex: keyword, $options: "i" } }
+        ];
+    }
+
+    const skip = (page - 1) * Number(limit);
+
+    const fields = "_id guestInfo checkInDate checkOutDate status paymentStatus rooms.roomTypeName rooms.quantity";
+
+    const [bookings, total] = await Promise.all([
+        BookingModel.find(filter)
+            .select(fields)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ createdAt: -1 })
+            .populate("rooms.room", "name")
+            .populate("user", "name email phone"),
+        BookingModel.countDocuments(filter)
+    ]);
+
+    return {
+        bookings,
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / Number(limit))
+        }
+    };
+};
+
+
+export const getBookingDetailManagerService = async (bookingId, managerId) => {
+    const hotel = await HotelModel.findOne({ owner: managerId });
+    if (!hotel) throw new Error("Bạn chưa có khách sạn");
+
+    const booking = await BookingModel.findOne({ _id: bookingId, hotel: hotel._id })
+        .populate("rooms.room", "name images")
+        .populate("services.service", "name")
+        .populate("user", "name email phone");
+
+    if (!booking) throw new Error("Booking không tồn tại");
+
+    return booking;
+};
+
+// Status hợp lệ và flow chuyển trạng thái
+const ALLOWED_TRANSITIONS = {
+    pending:    ["confirmed", "canceled"],
+    confirmed:  ["checked_in", "canceled"],
+    checked_in: ["checked_out"],
+    checked_out: ["completed"],
+};
+
+export const updateBookingStatusService = async (bookingId, managerId, status) => {
+    const hotel = await HotelModel.findOne({ owner: managerId });
+    if (!hotel) throw new Error("Bạn chưa có khách sạn");
+
+    const booking = await BookingModel.findOne({ _id: bookingId, hotel: hotel._id });
+    if (!booking) throw new Error("Booking không tồn tại");
+
+    const allowed = ALLOWED_TRANSITIONS[booking.status];
+    if (!allowed) throw new Error(`Booking ở trạng thái "${booking.status}" không thể cập nhật`);
+
+    if (!allowed.includes(status)) {
+        throw new Error(
+            `Không thể chuyển từ "${booking.status}" sang "${status}". Chỉ được chuyển sang: ${allowed.join(", ")}`
+        );
+    }
+
+    // Gán timestamp tương ứng
+    booking.status = status;
+
+    if (status === "checked_in")  booking.checkedInAt  = new Date();
+    if (status === "checked_out") booking.checkedOutAt = new Date();
+
+    await booking.save();
+
+    return booking;
 };

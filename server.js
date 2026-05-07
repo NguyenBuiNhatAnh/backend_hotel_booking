@@ -12,6 +12,7 @@ import { serviceRouter } from './routes/serviceRoute.js';
 import bookingRouter from './routes/bookingRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
 import "./cron/bookingExpiration.js";
+import reviewRouter from './routes/reviewRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -35,6 +36,7 @@ app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/services`, serviceRouter);
 app.use(`${API_PREFIX}/bookings`, bookingRouter);
 app.use(`${API_PREFIX}/payments`, paymentRouter);
+app.use(`${API_PREFIX}/payments`, reviewRouter);
 
 
 app.get('/',(req,res)=>{
