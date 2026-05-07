@@ -11,6 +11,7 @@ import userRouter from './routes/userRoute.js';
 import { serviceRouter } from './routes/serviceRoute.js';
 import bookingRouter from './routes/bookingRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
+import "./cron/bookingExpiration.js";
 
 // Create Express app and HTTP server
 const app = express();
