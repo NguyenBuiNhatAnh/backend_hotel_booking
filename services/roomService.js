@@ -38,13 +38,13 @@ export const updateHotelPriceRange = async (hotelId) => {
 
 export const createRoom = async (userId, data) => {
 
-    const hotel = await HotelModel.findOne({owner: userId});
+    const hotel = await HotelModel.findOne({ owner: userId });
 
-    if(!hotel) {
+    if (!hotel) {
         throw new Error("HOTEL_NOT_FOUND");
     }
 
-    if(hotel.status !== "approved") {
+    if (hotel.status !== "approved") {
         throw new Error("HOTEL_NOT_APPROVED");
     }
 
@@ -106,7 +106,12 @@ export const addRoomImages = async (userId, roomId, files) => {
 
     await room.save();
 
-    return room;
+    return {
+        _id: room._id,
+        name: room.name,
+        description: room.description,
+        images: room.images
+    };
 };
 
 export const deleteRoomImage = async (userId, roomId, public_id) => {
@@ -141,10 +146,22 @@ export const deleteRoomImage = async (userId, roomId, public_id) => {
 
     await room.save();
 
-    return room;
+    return {
+        _id: room._id,
+        name: room.name,
+        description: room.description,
+        images: room.images
+    };
 };
 
 export const getRoomsByHotel = async (hotelId, checkIn, checkOut) => {
+
+    // 🔥 check hotel tồn tại
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
 
     const rooms = await RoomModel.find({ hotel: hotelId });
 
@@ -225,7 +242,15 @@ export const updateRoom = async (userId, roomId, data) => {
     }
 
 
-    return room;
+    return {
+        _id: room._id,
+        name: room.name,
+        description: room.description,
+        price: room.price,
+        capacity: room.capacity,
+        quantity: room.quantity,
+        amenities: room.amenities
+    };
 };
 
 export const deleteRoom = async (userId, roomId) => {

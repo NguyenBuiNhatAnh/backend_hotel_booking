@@ -6,7 +6,7 @@ export const addServiceSchema = Joi.object({
     description: Joi.string().max(500).optional(),
     unit: Joi.string().max(20).optional(),
     chargeType: Joi.string()
-        .valid("one_time", "per_night", "per_person_per_night")
+        .valid("one_time", "per_night")
         .required()
 });
 
@@ -16,6 +16,6 @@ export const updateServiceSchema = Joi.object({
     description: Joi.string().max(500).optional(),
     unit: Joi.string().max(20).optional(),
     chargeType: Joi.string()
-        .valid("one_time", "per_night", "per_person_per_night")
+        .valid("one_time", "per_night")
         .optional()
 }).min(1);

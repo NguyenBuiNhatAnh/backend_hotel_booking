@@ -30,7 +30,6 @@ hotelRouter.post(
 hotelRouter.patch(
     "/",
     authMiddleware,
-    authorizeRoles("hotel_manager"),
     updateHotel
 )
 

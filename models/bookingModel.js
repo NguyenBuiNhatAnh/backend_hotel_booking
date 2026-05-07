@@ -28,6 +28,11 @@ const BookingSchema = new mongoose.Schema({
             type: String,
             enum: ["one_time", "per_night"]
         },     // lưu lại để hiển thị sau
+        status: {
+            type: String,
+            enum: ["pending", "completed", "canceled"],
+            default: "pending"
+        },
         unitPrice: Number,
         quantity: Number,
         numberOfDays: Number,

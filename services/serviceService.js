@@ -1,5 +1,6 @@
 import ServiceModel from "../models/serviceModel.js";
 import HotelModel from "../models/hotelModel.js";
+import mongoose from "mongoose";
 
 const getHotelByOwner = async (userId) => {
     const hotel = await HotelModel.findOne({ owner: userId });
@@ -24,7 +25,21 @@ export const addService = async (userId, data) => {
 };
 
 export const getServicesByHotel = async (hotelId) => {
+
+    // 🔥 validate ObjectId trước (nên có)
+    if (!mongoose.Types.ObjectId.isValid(hotelId)) {
+        throw new Error("INVALID_HOTEL_ID");
+    }
+
+    // 🔥 check hotel tồn tại
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
     const services = await ServiceModel.find({ hotel: hotelId });
+
     return services;
 };
 

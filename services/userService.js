@@ -2,6 +2,47 @@
 import UserModel from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 
+export const getUsers = async ({ page = 1, limit = 10 }) => {
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        role: { $in: ["customer", "hotel_manager"] }
+    };
+
+    const [users, total] = await Promise.all([
+        UserModel.find(filter)
+            .select("-password")
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }),
+
+        UserModel.countDocuments(filter)
+    ]);
+
+    return {
+        users,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    };
+};
+
+export const updateUserStatus = async (userId, status) => {
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    user.status = status;
+    await user.save();
+
+    return user;
+};
+
 export const updateProfileService = async (userId, data) => {
     const { firstName, lastName, phone } = data;
 

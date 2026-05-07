@@ -2,6 +2,7 @@ import HotelModel from "../models/hotelModel.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
+import RoomModel from "../models/roomModel.js";
 
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
