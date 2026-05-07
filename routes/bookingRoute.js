@@ -7,7 +7,8 @@ import {
     getBookingById,
     cancelBooking,
     getHotelBookings,
-    confirmBooking
+    confirmBooking,
+    createManagerBooking
 } from "../controllers/bookingController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { createBookingSchema } from "../validator/bookingValidator.js";
@@ -29,6 +30,13 @@ bookingRouter.patch(
     authMiddleware,
     authorizeRoles("hotel_manager"),
     confirmBooking
+);
+
+bookingRouter.post(
+    "/manage/create",
+    authMiddleware,
+    authorizeRoles("hotel_manager"),
+    createManagerBooking
 );
 
 

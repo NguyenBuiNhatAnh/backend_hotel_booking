@@ -249,7 +249,11 @@ export const addHotelImages = async (userId, files) => {
     hotel.image.push(...newImages);
     await hotel.save();
 
-    return hotel;
+    return {
+        name: hotel.name,
+        description: hotel.description,
+        images: hotel.image
+    };
 };
 
 export const deleteHotelImage = async (userId, publicId) => {
@@ -265,5 +269,9 @@ export const deleteHotelImage = async (userId, publicId) => {
     hotel.image = hotel.image.filter(img => img.public_id !== publicId);
     await hotel.save();
 
-    return hotel;
+    return {
+        name: hotel.name,
+        description: hotel.description,
+        images: hotel.image
+    };;
 };

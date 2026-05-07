@@ -80,3 +80,28 @@ export const confirmBooking = async (req, res) => {
         return res.status(400).json({ success: false, message: error.message });
     }
 };
+
+export const createManagerBooking = async (req, res) => {
+    try {
+
+        const booking =
+            await bookingService.createManagerBookingService({
+                ...req.body,
+                managerId: req.user.id
+            });
+
+        res.status(201).json({
+            success: true,
+            message: "Tạo booking thành công",
+            booking
+        });
+
+    } catch (error) {
+
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};

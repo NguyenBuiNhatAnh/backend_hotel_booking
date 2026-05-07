@@ -10,7 +10,8 @@ const PaymentSchema = new mongoose.Schema({
 
     method: {
         type: String,
-        enum: ["vnpay"]
+        enum: ["vnpay"],
+        default: "vnpay" 
     },
 
     status: {
