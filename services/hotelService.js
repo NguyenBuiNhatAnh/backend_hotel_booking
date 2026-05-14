@@ -231,6 +231,39 @@ export const updateHotel = async (userId, data) => {
     return hotel;
 };
 
+export const updateHotelAddress = async (userId, address) => {
+    // address expected: { city: string, ward?: string, street?: string }
+    // Validate city and ward against locations dataset if available
+    // We'll try to load locations file if exists (optional)
+    let valid = true;
+    try {
+        // lazy import
+        // eslint-disable-next-line node/no-missing-import
+        const locations = await import("../data/locations.json", { assert: { type: "json" } }).then(m => m.default || m);
+        const cityObj = locations.cities.find(c => c.id === address.city || c.name === address.city);
+        if (!cityObj) valid = false;
+        if (address.ward && cityObj) {
+            const wardObj = cityObj.wards.find(w => w.id === address.ward || w.name === address.ward);
+            if (!wardObj) valid = false;
+        }
+    } catch (e) {
+        // if locations.json not present or import fails, skip strict validation
+        valid = true;
+    }
+
+    if (!valid) throw new Error("Invalid city or ward");
+
+    const hotel = await HotelModel.findOneAndUpdate(
+        { owner: userId },
+        { $set: { "address.city": address.city, "address.ward": address.ward || "", "address.street": address.street || "" } },
+        { new: true }
+    );
+
+    if (!hotel) throw new Error("HOTEL_NOT_FOUND");
+
+    return hotel;
+};
+
 export const addHotelImages = async (userId, files) => {
     const hotel = await HotelModel.findOne({ owner: userId });
 

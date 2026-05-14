@@ -3,7 +3,7 @@ import RoomModel from "../models/roomModel.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
-import { getRoomAvailability } from "./bookingService.js";
+import { getRoomAvailability, getBookedQuantity } from "./bookingService.js";
 
 export const updateHotelPriceRange = async (hotelId) => {
     const result = await RoomModel.aggregate([
@@ -178,7 +178,10 @@ export const getRoomsByHotel = async (hotelId, checkIn, checkOut) => {
                 name: room.name,
                 price: room.price,
                 capacity: room.capacity,
+                amenities: room.amenities,
+                description: room.description,
                 totalQuantity: room.quantity,
+                images: room.images,
                 availableQuantity: availability.availableQuantity,
                 isAvailable: availability.isAvailable
             };
@@ -241,7 +244,6 @@ export const updateRoom = async (userId, roomId, data) => {
         await updateHotelPriceRange(room.hotel._id);
     }
 
-
     return {
         _id: room._id,
         name: room.name,
@@ -280,3 +282,64 @@ export const deleteRoom = async (userId, roomId) => {
 
     return true;
 };
+
+export const getTotalRoomsByHotel = async (hotelId) => {
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    let totalRooms = 0;
+    const rooms = await RoomModel.find({ hotel: hotelId });
+
+    rooms.forEach(room => {
+        totalRooms += room.quantity
+    })
+
+    return totalRooms;
+};
+
+export const getTotalAvailableRoomsByHotel = async (hotelId) => {
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    const rooms = await RoomModel.find({ hotel: hotelId });
+    const now = new Date();
+
+    const availabilityPromises = rooms.map(room => 
+        getRoomAvailability(room._id, now, now)
+    );
+    const availabilityResults = await Promise.all(availabilityPromises);
+    
+    const total = availabilityResults.reduce((sum, result) => {
+        return sum + (result.availableQuantity || 0);
+    }, 0);
+
+    return total;
+}
+
+export const getTotalBookedRoomsByHotel = async (hotelId) => {
+    const hotel = await HotelModel.findById(hotelId);
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    const rooms = await RoomModel.find({ hotel: hotelId });
+    const now = new Date();
+
+    const bookedPromises = rooms.map(room => 
+        getBookedQuantity(room._id, now, now)
+    );
+    const bookedResults = await Promise.all(bookedPromises);
+    
+    const total = bookedResults.reduce((sum, count) => {
+        return sum + (count || 0); 
+    }, 0);
+
+    return total;
+}

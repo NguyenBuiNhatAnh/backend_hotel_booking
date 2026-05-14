@@ -1,6 +1,34 @@
 import ReviewModel from "../models/reviewModel.js";
 import BookingModel from "../models/bookingModel.js";
 import HotelModel from "../models/hotelModel.js";
+import mongoose from "mongoose";
+
+// Helper: tính lại avgRating và lưu vào Hotel
+const updateHotelRating = async (hotelId) => {
+    const result = await ReviewModel.aggregate([
+        { $match: {
+                hotel: new mongoose.Types.ObjectId(hotelId)
+            } 
+        },
+        {
+            $group: {
+                _id: "$hotel",
+                avgRating: { $avg: "$rating" },
+                totalReviews: { $sum: 1 }
+            }
+        }
+    ]);
+
+    console.log(result);
+
+    const avgRating = result[0]?.avgRating
+        ? Math.round(result[0].avgRating * 2) / 2  // làm tròn theo 0,5
+        : 0;
+
+    const totalReviews = result[0]?.totalReviews ?? 0;
+
+    await HotelModel.findByIdAndUpdate(hotelId, { avgRating, totalReviews });
+};
 
 export const createReviewService = async (userId, data) => {
     const { bookingId, rating, comment } = data;
@@ -34,20 +62,41 @@ export const createReviewService = async (userId, data) => {
 };
 
 export const getHotelReviewsService = async (hotelId, query) => {
-    const { page = 1, limit = 10 } = query;
+    const { page = 1, limit = 10, from, to, date } = query;
     const skip = (page - 1) * Number(limit);
 
+    const filter = { hotel: hotelId };
+
+    // support date filtering: either date=YYYY-MM-DD or from/to iso strings
+    if (date) {
+        const dayStart = new Date(date);
+        dayStart.setHours(0,0,0,0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23,59,59,999);
+        filter.createdAt = { $gte: dayStart, $lte: dayEnd };
+    } else if (from || to) {
+        filter.createdAt = {};
+        if (from) filter.createdAt.$gte = new Date(from);
+        if (to) filter.createdAt.$lte = new Date(to);
+    }
+
     const [reviews, total] = await Promise.all([
-        ReviewModel.find({ hotel: hotelId })
+        ReviewModel.find(filter)
             .skip(skip)
             .limit(Number(limit))
             .sort({ createdAt: -1 })
-            .populate("user", "name avatar"),
+            .populate("user", "firstName lastName"),
         ReviewModel.countDocuments({ hotel: hotelId })
     ]);
 
+    // also return hotel's avgRating and totalReviews if present
+    updateHotelRating(hotelId);
+    const hotel = await HotelModel.findById(hotelId).select("avgRating totalReviews");
+
     return {
         reviews,
+        avgRating: hotel?.avgRating ?? 0,
+        totalReviews: hotel?.totalReviews ?? total,
         pagination: {
             total,
             page: Number(page),
@@ -55,28 +104,6 @@ export const getHotelReviewsService = async (hotelId, query) => {
             totalPages: Math.ceil(total / Number(limit))
         }
     };
-};
-
-// Helper: tính lại avgRating và lưu vào Hotel
-const updateHotelRating = async (hotelId) => {
-    const result = await ReviewModel.aggregate([
-        { $match: { hotel: hotelId } },
-        {
-            $group: {
-                _id: "$hotel",
-                avgRating: { $avg: "$rating" },
-                totalReviews: { $sum: 1 }
-            }
-        }
-    ]);
-
-    const avgRating = result[0]?.avgRating
-        ? Math.round(result[0].avgRating * 10) / 10  // làm tròn 1 chữ số thập phân
-        : 0;
-
-    const totalReviews = result[0]?.totalReviews ?? 0;
-
-    await HotelModel.findByIdAndUpdate(hotelId, { avgRating, totalReviews });
 };
 
 export const updateReviewService = async (reviewId, userId, data) => {
