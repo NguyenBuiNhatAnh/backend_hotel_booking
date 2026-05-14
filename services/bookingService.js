@@ -100,6 +100,13 @@ export const createBookingService = async (data) => {
                 throw new Error(`Phòng ${roomId} không tồn tại`);
             }
 
+            // CHECK ROOM BELONGS TO HOTEL
+            if (room.hotel.toString() !== hotelId.toString()) {
+                throw new Error(
+                    `Phòng "${room.name}" không thuộc khách sạn này`
+                );
+            }
+
             const bookedQuantity = await getBookedQuantity(
                 roomId,
                 checkIn,
@@ -527,7 +534,7 @@ export const getTodayBookingsService = async (managerId, query) => {
     // Mặc định là hôm nay nếu không truyền date
     const targetDate = date ? new Date(date) : new Date();
     const start = new Date(targetDate.setHours(0, 0, 0, 0));
-    const end   = new Date(targetDate.setHours(23, 59, 59, 999));
+    const end = new Date(targetDate.setHours(23, 59, 59, 999));
 
     const filter = {
         hotel: hotel._id,
@@ -581,10 +588,10 @@ export const searchBookingService = async (managerId, query) => {
         filter._id = keyword;
     } else {
         filter.$or = [
-            { "guestInfo.phone":     { $regex: keyword, $options: "i" } },
+            { "guestInfo.phone": { $regex: keyword, $options: "i" } },
             { "guestInfo.firstName": { $regex: keyword, $options: "i" } },
-            { "guestInfo.lastName":  { $regex: keyword, $options: "i" } },
-            { "guestInfo.email":     { $regex: keyword, $options: "i" } }
+            { "guestInfo.lastName": { $regex: keyword, $options: "i" } },
+            { "guestInfo.email": { $regex: keyword, $options: "i" } }
         ];
     }
 
@@ -631,8 +638,8 @@ export const getBookingDetailManagerService = async (bookingId, managerId) => {
 
 // Status hợp lệ và flow chuyển trạng thái
 const ALLOWED_TRANSITIONS = {
-    pending:    ["confirmed", "canceled"],
-    confirmed:  ["checked_in", "canceled"],
+    pending: ["confirmed", "canceled"],
+    confirmed: ["checked_in", "canceled"],
     checked_in: ["checked_out"],
     checked_out: ["completed"],
 };
@@ -656,7 +663,7 @@ export const updateBookingStatusService = async (bookingId, managerId, status) =
     // Gán timestamp tương ứng
     booking.status = status;
 
-    if (status === "checked_in")  booking.checkedInAt  = new Date();
+    if (status === "checked_in") booking.checkedInAt = new Date();
     if (status === "checked_out") booking.checkedOutAt = new Date();
 
     await booking.save();
