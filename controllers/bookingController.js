@@ -140,7 +140,7 @@ export const searchBooking = async (req, res) => {
 export const getBookingDetailManager = async (req, res) => {
     try {
         const data = await bookingService.getBookingDetailManagerService(req.params.bookingId, req.user.id);
-        res.status(200).json({ success: true, data: {status: data.status} });
+        res.status(200).json({ success: true, data });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }

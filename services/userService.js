@@ -2,12 +2,10 @@
 import UserModel from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 
-export const getUsers = async ({ page = 1, limit = 10 }) => {
+export const getUsers = async ({ page = 1, limit = 10, filter = {} } = {}) => {
+    page = Number(page);
+    limit = Number(limit);
     const skip = (page - 1) * limit;
-
-    const filter = {
-        role: { $in: ["customer", "hotel_manager"] }
-    };
 
     const [users, total] = await Promise.all([
         UserModel.find(filter)
@@ -15,19 +13,10 @@ export const getUsers = async ({ page = 1, limit = 10 }) => {
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 }),
-
         UserModel.countDocuments(filter)
     ]);
 
-    return {
-        users,
-        pagination: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit)
-        }
-    };
+    return { users, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
 };
 
 export const updateUserStatus = async (userId, status) => {

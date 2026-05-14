@@ -3,16 +3,30 @@ import * as userService from "../services/userService.js";
 
 export const getUsersController = async (req, res) => {
     try {
-        const users = await userService.getUsers();
+        const { page = 1, limit = 10, status, search } = req.query;
+        const filter = { role: { $in: ["customer", "hotel_manager"] } };
 
+        // Lọc theo status nếu có
+        if (status && ['active', 'blocked'].includes(status)) {
+            filter.status = status;
+        }
+
+        // Lọc theo tên hoặc email (tìm kiếm)
+        if (search) {
+            filter.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const result = await userService.getUsers({ page, limit, filter });
         return res.status(200).json({
             message: "Get users successfully",
-            data: users
+            data: result
         });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return res.status(500).json({ message: error.message });
     }
 };
 

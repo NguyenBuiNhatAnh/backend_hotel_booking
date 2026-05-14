@@ -1,5 +1,31 @@
 import * as roomService from "../services/roomService.js";
 
+export const getMyHotelRoomsController = async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+
+        const result = await roomService.getMyHotelRooms(userId);
+
+        return res.status(200).json({
+            message: "Get hotel rooms successfully",
+            data: result
+        });
+
+    } catch (error) {
+
+        if (error.message === "HOTEL_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Hotel not found"
+            });
+        }
+
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 export const createRoom = async (req, res) => {
     try {
         const userId = req.user.id;

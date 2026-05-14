@@ -3,6 +3,7 @@ import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import mongoose from "mongoose";
 import RoomModel from "../models/roomModel.js";
+import { getBookedQuantity } from "./bookingService.js";
 
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
@@ -30,22 +31,29 @@ export const getAllHotel = async (query) => {
         limit = 10
     } = query;
 
+    const debugHotels = await HotelModel.find({ status: "approved" }).lean();
+    console.log("Total approved hotels:", debugHotels.length);
+    console.log("Sample:", JSON.stringify(debugHotels[0], null, 2));
+
+    // ─── 1. BUILD HOTEL FILTER ───────────────────────────────────────
     const matchHotel = { status: "approved" };
 
-    // 📍 Lọc địa điểm
     if (city) {
-        matchHotel["address.city"] = { $regex: city, $options: "i" };
+        matchHotel["address.city"] = { $regex: city.trim(), $options: "i" };
     }
 
-    // 🏨 Lọc tiện ích
     if (amenities) {
-        const amenityList = amenities.split(",").map(a => a.trim());
+        const amenityList = amenities.split(",").map((a) => a.trim().toLowerCase());
         matchHotel.amenities = { $all: amenityList };
     }
 
-    // 💰 Lọc giá (dùng trực tiếp hotel.minPrice / maxPrice)
+    // Overlap: hotel.maxPrice >= userMin  &&  hotel.minPrice <= userMax
+    // Chỉ filter nếu hotel đã có giá (không null)
     if (minPrice || maxPrice) {
-        const priceConditions = [];
+        const priceConditions = [
+            { minPrice: { $ne: null } },
+            { maxPrice: { $ne: null } }
+        ];
 
         if (minPrice) {
             priceConditions.push({ maxPrice: { $gte: Number(minPrice) } });
@@ -58,67 +66,75 @@ export const getAllHotel = async (query) => {
         matchHotel.$and = priceConditions;
     }
 
+    // ─── 2. QUERY HOTELS ─────────────────────────────────────────────
+    const hotels = await HotelModel.find(matchHotel)
+        .sort({ createdAt: -1 })
+        .lean();
+
+    if (hotels.length === 0) {
+        return {
+            hotels: [],
+            pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 }
+        };
+    }
+
+    // ─── 3. QUERY ROOMS (1 lần, tránh N+1) ───────────────────────────
+    const hotelIds = hotels.map((h) => h._id);
+
+    const roomQuery = { hotel: { $in: hotelIds } };
+    if (guests) roomQuery.capacity = { $gte: Number(guests) };
+
+    const allRooms = await RoomModel.find(roomQuery).lean();
+
+    // Group rooms theo hotelId
+    const roomsByHotel = {};
+    for (const room of allRooms) {
+        const key = room.hotel.toString();
+        if (!roomsByHotel[key]) roomsByHotel[key] = [];
+        roomsByHotel[key].push(room);
+    }
+
+    // ─── 4. CHECK AVAILABILITY ────────────────────────────────────────
     const hasDateFilter = checkInDate && checkOutDate;
     const checkIn = hasDateFilter ? new Date(checkInDate) : null;
     const checkOut = hasDateFilter ? new Date(checkOutDate) : null;
 
-    // 🔥 Lọc hotel trước → giảm dataset
-    const hotels = await HotelModel.find(matchHotel)
-        .sort({ createdAt: -1 });
-
     const result = [];
 
     for (const hotel of hotels) {
-
-        // 🎯 chỉ filter room theo guests (không filter price nữa)
-        const roomQuery = { hotel: hotel._id };
-
-        if (guests) {
-            roomQuery.capacity = { $gte: Number(guests) };
-        }
-
-        const rooms = await RoomModel.find(roomQuery);
+        const rooms = roomsByHotel[hotel._id.toString()] || [];
 
         if (rooms.length === 0) continue;
 
         if (hasDateFilter) {
-            const availableRooms = [];
+            // Kiểm tra availability song song (Promise.all)
+            const availability = await Promise.all(
+                rooms.map(async (room) => {
+                    const bookedQty = await getBookedQuantity(room._id, checkIn, checkOut);
+                    const availableQty = room.quantity - bookedQty;
+                    return { room, availableQty };
+                })
+            );
 
-            for (const room of rooms) {
-                const bookedQty = await getBookedQuantity(
-                    room._id,
-                    checkIn,
-                    checkOut
-                );
-
-                const availableQty = room.quantity - bookedQty;
-
-                if (availableQty > 0) {
-                    availableRooms.push({
-                        _id: room._id,
-                        name: room.name,
-                        price: room.price,
-                        capacity: room.capacity,
-                        availableQuantity: availableQty
-                    });
-                }
-            }
+            const availableRooms = availability
+                .filter(({ availableQty }) => availableQty > 0)
+                .map(({ room, availableQty }) => ({
+                    _id: room._id,
+                    name: room.name,
+                    price: room.price,
+                    capacity: room.capacity,
+                    availableQuantity: availableQty
+                }));
 
             if (availableRooms.length === 0) continue;
 
-            result.push({
-                ...hotel.toObject(),
-                availableRooms
-            });
-
+            result.push({ ...hotel, availableRooms });
         } else {
-            result.push({
-                ...hotel.toObject()
-            });
+            result.push(hotel);
         }
     }
 
-    // 📄 Pagination
+    // ─── 5. PAGINATION ────────────────────────────────────────────────
     const total = result.length;
     const skip = (Number(page) - 1) * Number(limit);
     const paginated = result.slice(skip, skip + Number(limit));

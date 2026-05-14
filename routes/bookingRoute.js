@@ -29,12 +29,12 @@ bookingRouter.get(
     getHotelBookings
 );
 
-bookingRouter.patch(
-    "/:bookingId/confirm",
-    authMiddleware,
-    authorizeRoles("hotel_manager"),
-    confirmBooking
-);
+// bookingRouter.patch(
+//     "/:bookingId/confirm",
+//     authMiddleware,
+//     authorizeRoles("hotel_manager"),
+//     confirmBooking
+// );
 
 bookingRouter.post(
     "/manage/create",

@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 // ============================================================
 // Tính số phòng đã được đặt trong khoảng thời gian
 // ============================================================
-const getBookedQuantity = async (roomId, checkInDate, checkOutDate, session = null) => {
+export const getBookedQuantity = async (roomId, checkInDate, checkOutDate, session = null) => {
     const query = BookingModel.find({
         status: { $nin: ["canceled"] },
         checkInDate: { $lt: checkOutDate },

@@ -5,6 +5,30 @@ import streamifier from "streamifier";
 import mongoose from "mongoose";
 import { getRoomAvailability } from "./bookingService.js";
 
+export const getMyHotelRooms = async (userId) => {
+
+    const hotel = await HotelModel.findOne({
+        owner: userId
+    });
+
+    if (!hotel) {
+        throw new Error("HOTEL_NOT_FOUND");
+    }
+
+    const rooms = await RoomModel.find({
+        hotel: hotel._id
+    }).sort({ createdAt: -1 });
+
+    return {
+        hotel: {
+            _id: hotel._id,
+            name: hotel.name,
+            status: hotel.status
+        },
+        rooms
+    };
+};
+
 export const updateHotelPriceRange = async (hotelId) => {
     const result = await RoomModel.aggregate([
         {

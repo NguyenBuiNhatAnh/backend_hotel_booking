@@ -1,5 +1,5 @@
 import express from "express";
-import { addRoomImages, createRoom, deleteRoom, deleteRoomImage, getRoomById, getRoomsByHotel, updateRoom } from "../controllers/roomController.js";
+import { addRoomImages, createRoom, deleteRoom, deleteRoomImage, getMyHotelRoomsController, getRoomById, getRoomsByHotel, updateRoom } from "../controllers/roomController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
 import { validate } from "../middlewares/validateMiddleware.js";
@@ -11,6 +11,13 @@ const roomRouter = express.Router();
 roomRouter.get(
     "/hotel/:hotelId",
     getRoomsByHotel
+);
+
+roomRouter.get(
+    "/my-hotel",
+    authMiddleware,
+    authorizeRoles("hotel_manager"),
+    getMyHotelRoomsController
 );
 
 roomRouter.patch(
