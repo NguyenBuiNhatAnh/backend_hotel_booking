@@ -25,3 +25,9 @@ export const updateHotelSchema = Joi.object({
     checkInTime: Joi.string().optional(),
     checkOutTime: Joi.string().optional()
 }).min(1);
+
+export const updateHotelAddressSchema = Joi.object({
+    city: Joi.string().required(),
+    ward: Joi.string().allow("").optional(),
+    street: Joi.string().allow("").optional()
+});
