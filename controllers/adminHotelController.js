@@ -54,34 +54,6 @@ export const getAllHotelsForAdmin = async (req, res) => {
     }
 };
 
-
-export const getHotelDetailForAdminController = async (req, res) => {
-  try {
-    const { hotelId } = req.params;
-
-    const hotel = await adminHotelService.getHotelDetailForAdminService(hotelId);
-
-    return res.status(200).json({
-      success: true,
-      data: hotel,
-    });
-  } catch (error) {
-    console.error(error);
-
-    if (error.message === "HOTEL_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Hotel not found",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
 export const approveHotel = async (req, res) => {
     try {
         const { hotelId } = req.params;

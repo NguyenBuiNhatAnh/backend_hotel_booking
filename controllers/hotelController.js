@@ -1,5 +1,6 @@
 import * as hotelService from "../services/hotelService.js";
-
+import { updateHotelSchema } from "../validator/hotelValidator.js";
+import { getTotalRoomsByHotel, getTotalAvailableRoomsByHotel, getTotalBookedRoomsByHotel } from "../services/roomService.js";
 
 export const getHotelById = async (req, res) => {
     try {
@@ -129,3 +130,57 @@ export const deleteHotelImage = async (req, res) => {
         return handleHotelError(res, error);
     }
 };
+
+export const updateHotelAddress = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { city, ward, street } = req.body;
+
+        if (!city) return res.status(400).json({ success: false, message: "city is required" });
+
+        const updated = await hotelService.updateHotelAddress(userId, { city, ward, street });
+
+        return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        if (error.message === "Invalid city or ward") {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        if (error.message === "HOTEL_NOT_FOUND") {
+            return res.status(404).json({ success: false, message: "Hotel not found" });
+        }
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getHotelStats = async (req, res) => {
+    try {
+        const { hotelId } = req.params;
+
+        // Chạy song song cả 3 hàm để tối ưu tốc độ phản hồi
+        const [totalRooms, totalAvailable, totalBooked] = await Promise.all([
+            getTotalRoomsByHotel(hotelId),
+            getTotalAvailableRoomsByHotel(hotelId),
+            getTotalBookedRoomsByHotel(hotelId)
+        ]);
+
+        // Trả về dữ liệu cho Frontend
+        res.status(200).json({
+        success: true,
+        data: {
+            hotelId,
+            totalRooms,      // Tổng số phòng khách sạn có
+            totalAvailable, // Số phòng hiện đang trống
+            totalBooked,    // Số phòng hiện đang có khách
+            // Tính % công suất phòng (Occupancy Rate) để Manager xem cho "xịn"
+            occupancyRate: totalRooms > 0 ? ((totalBooked / totalRooms) * 100).toFixed(2) + "%" : "0%"
+        }
+        }); 
+    } catch (error) {
+        res.status(500).json({
+        success: false,
+        message: error.message || "Lỗi khi lấy thống kê khách sạn"
+        });
+    }
+};
+
+

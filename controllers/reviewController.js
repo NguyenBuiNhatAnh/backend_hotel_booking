@@ -35,3 +35,15 @@ export const getHotelReviews = async (req, res) => {
         });
     }
 };
+
+// New: get reviews by a specific date (query param: date=YYYY-MM-DD)
+export const getHotelReviewsByDate = async (req, res) => {
+    try {
+        const { date, page, limit } = req.query;
+        // pass date through to service
+        const data = await getHotelReviewsService(req.params.hotelId, { date, page, limit });
+        res.status(200).json({ success: true, data });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
