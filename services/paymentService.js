@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import querystring from "querystring";
-import qs from "qs";                    // ✅ thêm
 import moment from "moment";
 import PaymentModel from "../models/paymentModel.js";
 import BookingModel from "../models/bookingModel.js";
@@ -54,29 +53,29 @@ export const createVNPayPaymentService = async (bookingId, userId, ipAddr) => {
 
     vnp_Params = sortObject(vnp_Params);
 
-    // ✅ encode: false — không encode URL, nhất quán với verify
-    const signData = qs.stringify(vnp_Params, { encode: false });
+    // ✅ DÙNG querystring.stringify (tự động encode)
+    const signData = querystring.stringify(vnp_Params);
     const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
     vnp_Params["vnp_SecureHash"] = signed;
 
-    // querystring.stringify vẫn dùng để build URL (encode bình thường)
+    // Tạo URL thanh toán (cũng dùng querystring.stringify)
     const paymentUrl = process.env.VNP_URL + "?" + querystring.stringify(vnp_Params);
-
     return { paymentUrl };
 };
 
 export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) => {
     const secureHash = vnp_Params["vnp_SecureHash"];
 
+    // Loại bỏ 2 trường hash trước khi ký lại
     const params = { ...vnp_Params };
     delete params["vnp_SecureHash"];
     delete params["vnp_SecureHashType"];
 
     const sortedParams = sortObject(params);
 
-    // ✅ encode: false — nhất quán với lúc tạo chữ ký
-    const signData = qs.stringify(sortedParams, { encode: false });
+    // ✅ PHẢI DÙNG CÙNG CÁCH ENCODE (querystring.stringify)
+    const signData = querystring.stringify(sortedParams);
     const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
 
