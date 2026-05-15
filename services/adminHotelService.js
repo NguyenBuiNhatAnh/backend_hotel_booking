@@ -63,8 +63,6 @@ export const getHotelsForAdminService = async (query) => {
 
 export const getHotelDetailForAdminService = async (hotelId) => {
   const hotel = await HotelModel.findById(hotelId)
-    .populate("owner", "name email role")
-    .populate("rooms");
 
   if (!hotel) {
     throw new Error("HOTEL_NOT_FOUND");
