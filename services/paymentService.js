@@ -79,6 +79,15 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
     const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
 
+    // ✅ THÊM LOG VÀO ĐÂY
+    console.log("=== VNPay Verify ===");
+    console.log("signData:", signData);
+    console.log("secureHash (VNPay gửi):", secureHash);
+    console.log("signed (mình tính):", signed);
+    console.log("SECRET:", process.env.VNP_HASH_SECRET);
+    console.log("Khớp?", secureHash === signed);
+    // ✅ HẾT LOG
+
     if (secureHash !== signed) {
         throw new Error("Chữ ký không hợp lệ");
     }

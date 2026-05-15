@@ -24,6 +24,12 @@ export const createPayment = async (req, res) => {
 // VNPay callback
 export const vnpayReturn = async (req, res) => {
     try {
+
+        // ✅ THÊM LOG VÀO ĐÂY
+        console.log("=== VNPay Callback ===");
+        console.log("Query:", JSON.stringify(req.query, null, 2));
+        // ✅ HẾT LOG
+
         const { io, onlineUsers } = req.app.locals; // truyền io qua app.locals
         const result = await handleVNPayCallbackService(req.query, io, onlineUsers);
 
