@@ -41,30 +41,6 @@ export const createReviewService = async (userId, data) => {
     return review;
 };
 
-export const getHotelReviewsService = async (hotelId, query) => {
-    const { page = 1, limit = 10 } = query;
-    const skip = (page - 1) * Number(limit);
-
-    const [reviews, total] = await Promise.all([
-        ReviewModel.find({ hotel: hotelId })
-            .skip(skip)
-            .limit(Number(limit))
-            .sort({ createdAt: -1 })
-            .populate("user", "name avatar"),
-        ReviewModel.countDocuments({ hotel: hotelId })
-    ]);
-
-    return {
-        reviews,
-        pagination: {
-            total,
-            page: Number(page),
-            limit: Number(limit),
-            totalPages: Math.ceil(total / Number(limit))
-        }
-    };
-};
-
 // Helper: tính lại avgRating và lưu vào Hotel
 const updateHotelRating = async (hotelId) => {
     const result = await ReviewModel.aggregate([
@@ -122,8 +98,74 @@ export const getReviewByBookingService = async (bookingId, userId) => {
     const review = await ReviewModel.findOne({
         booking: bookingId
     })
-    .populate("user", "name avatar")
-    .populate("hotel", "name");
+    .populate({
+        path: "user",
+        select: "firstName lastName email"
+    })
+    .populate({
+        path: "hotel",
+        select: "name"
+    });
 
     return review;
+};
+
+export const getHotelReviewsService = async (hotelId, query) => {
+
+    const { page = 1, limit = 10 } = query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [reviews, total] = await Promise.all([
+
+        ReviewModel.find({ hotel: hotelId })
+
+            .skip(skip)
+
+            .limit(Number(limit))
+
+            .sort({ createdAt: -1 })
+
+            .populate({
+                path: "user",
+                select: "firstName lastName email"
+            })
+
+            .populate({
+                path: "hotel",
+                select: "name"
+            }),
+
+        ReviewModel.countDocuments({
+            hotel: hotelId
+        })
+    ]);
+
+    // format response
+    const formattedReviews = reviews.map(review => {
+
+        const obj = review.toObject();
+
+        obj.user = {
+            _id: obj.user?._id,
+            firstName: obj.user?.firstName || "",
+            lastName: obj.user?.lastName || "",
+            fullName:
+                `${obj.user?.firstName || ""} ${obj.user?.lastName || ""}`.trim(),
+            email: obj.user?.email || ""
+        };
+
+        return obj;
+    });
+
+    return {
+        reviews: formattedReviews,
+
+        pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / Number(limit))
+        }
+    };
 };
