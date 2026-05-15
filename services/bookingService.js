@@ -524,17 +524,15 @@ export const createManagerBookingService = async (data) => {
     }
 };
 
-// Luồng 1: Danh sách theo ngày + status
 export const getTodayBookingsService = async (managerId, query) => {
     const { status, date, page = 1, limit = 20 } = query;
 
     const hotel = await HotelModel.findOne({ owner: managerId });
     if (!hotel) throw new Error("Bạn chưa có khách sạn");
 
-    // Mặc định là hôm nay nếu không truyền date
     const targetDate = date ? new Date(date) : new Date();
-    const start = new Date(targetDate.setHours(0, 0, 0, 0));
-    const end = new Date(targetDate.setHours(23, 59, 59, 999));
+    const start = new Date(new Date(targetDate).setHours(0, 0, 0, 0));
+    const end = new Date(new Date(targetDate).setHours(23, 59, 59, 999));
 
     const filter = {
         hotel: hotel._id,
@@ -543,18 +541,16 @@ export const getTodayBookingsService = async (managerId, query) => {
 
     if (status) filter.status = status;
 
-    const skip = (page - 1) * Number(limit);
-
-    const fields = "_id guestInfo checkInDate checkOutDate status paymentStatus rooms.roomTypeName rooms.quantity";
+    const skip = (Number(page) - 1) * Number(limit);
 
     const [bookings, total] = await Promise.all([
         BookingModel.find(filter)
-            .select(fields)
             .skip(skip)
             .limit(Number(limit))
             .sort({ checkInDate: 1 })
-            .populate("rooms.room", "name")
-            .populate("user", "name email phone"),
+            .populate("user", "name email phone")
+            .populate("rooms.room", "name price capacity")
+            .populate("services.service", "name price unit chargeType description"),
         BookingModel.countDocuments(filter)
     ]);
 

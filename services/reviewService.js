@@ -7,7 +7,9 @@ export const createReviewService = async (userId, data) => {
 
     // Kiểm tra booking tồn tại và thuộc về user
     const booking = await BookingModel.findById(bookingId);
-    if (!booking) throw new Error("Booking không tồn tại");
+
+    if (!booking)
+        throw new Error("Booking không tồn tại");
 
     if (booking.user?.toString() !== userId.toString())
         throw new Error("Bạn không có quyền review booking này");
@@ -17,7 +19,9 @@ export const createReviewService = async (userId, data) => {
 
     // Mỗi booking chỉ được review 1 lần
     const existed = await ReviewModel.findOne({ booking: bookingId });
-    if (existed) throw new Error("Booking này đã được đánh giá");
+
+    if (existed)
+        throw new Error("Booking này đã được đánh giá");
 
     const review = await ReviewModel.create({
         user: userId,
@@ -27,7 +31,11 @@ export const createReviewService = async (userId, data) => {
         comment
     });
 
-    // Cập nhật lại avgRating cho hotel
+    // update trạng thái đã review
+    booking.reviewStatus = true;
+    await booking.save();
+
+    // Cập nhật rating khách sạn
     await updateHotelRating(booking.hotel);
 
     return review;
@@ -88,13 +96,34 @@ export const updateReviewService = async (reviewId, userId, data) => {
     if (review.user.toString() !== userId.toString())
         throw new Error("Bạn không có quyền chỉnh sửa review này");
 
-    if (rating)  review.rating  = rating;
+    if (rating) review.rating = rating;
     if (comment) review.comment = comment;
 
     await review.save();
 
     // Tính lại avgRating nếu đổi rating
     if (rating) await updateHotelRating(review.hotel);
+
+    return review;
+};
+
+export const getReviewByBookingService = async (bookingId, userId) => {
+
+    // kiểm tra booking tồn tại
+    const booking = await BookingModel.findById(bookingId);
+
+    if (!booking)
+        throw new Error("Booking không tồn tại");
+
+    // chỉ chủ booking mới được xem
+    if (booking.user?.toString() !== userId.toString())
+        throw new Error("Bạn không có quyền truy cập booking này");
+
+    const review = await ReviewModel.findOne({
+        booking: bookingId
+    })
+    .populate("user", "name avatar")
+    .populate("hotel", "name");
 
     return review;
 };

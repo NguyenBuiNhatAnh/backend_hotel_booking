@@ -8,7 +8,8 @@ export const createBookingSchema = Joi.object({
         })
     ).min(1).required(),
 
-    checkInDate: Joi.date().greater("now").required(),
+    // checkInDate: Joi.date().greater("now").required(),
+    checkInDate: Joi.date().required(),
     checkOutDate: Joi.date().greater(Joi.ref("checkInDate")).required(),
 
     guests: Joi.number().integer().min(1).required(),

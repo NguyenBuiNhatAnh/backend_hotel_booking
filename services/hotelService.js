@@ -32,8 +32,6 @@ export const getAllHotel = async (query) => {
     } = query;
 
     const debugHotels = await HotelModel.find({ status: "approved" }).lean();
-    console.log("Total approved hotels:", debugHotels.length);
-    console.log("Sample:", JSON.stringify(debugHotels[0], null, 2));
 
     // ─── 1. BUILD HOTEL FILTER ───────────────────────────────────────
     const matchHotel = { status: "approved" };

@@ -36,7 +36,7 @@ app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/services`, serviceRouter);
 app.use(`${API_PREFIX}/bookings`, bookingRouter);
 app.use(`${API_PREFIX}/payments`, paymentRouter);
-app.use(`${API_PREFIX}/payments`, reviewRouter);
+app.use(`${API_PREFIX}/reviews`, reviewRouter);
 
 
 app.get('/',(req,res)=>{

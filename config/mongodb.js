@@ -10,7 +10,10 @@ const connectDatabase = async () => {
         }
     })
 
-    await mongoose.connect(`${process.env.MONGODB_URL}/hotel_booking`);
+    await mongoose.connect(process.env.MONGODB_URL, {
+        dbName: "hotel_booking",
+        readPreference: "primary"   // truyền qua option, không phải URL
+    });
 
 }
 
