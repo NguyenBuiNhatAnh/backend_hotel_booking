@@ -104,8 +104,10 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
             return result;
         }, {});
 
-    // ✅ Dùng querystring.stringify — nhất quán với lúc tạo URL
-    const signData = querystring.stringify(params);
+    /// ✅ Không dùng querystring.stringify — join thủ công tránh re-encode
+    const signData = Object.keys(params)
+        .map(key => `${key}=${params[key]}`)
+        .join("&");
     const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
 
