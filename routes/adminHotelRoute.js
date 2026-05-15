@@ -13,7 +13,7 @@ adminHotelRoute.get(
 );
 
 adminHotelRoute.get(
-  "/hotels/:hotelId",
+  "/hotel/:hotelId",
   authMiddleware,
   authorizeRoles("admin"),
   getHotelDetailForAdminController
