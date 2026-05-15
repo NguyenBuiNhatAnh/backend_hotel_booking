@@ -93,8 +93,9 @@ export const createVNPayPaymentService = async (bookingId, userId, ipAddr) => {
 // Xử lý callback từ VNPay (return URL)
 // ============================================================
 export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) => {
-    // 1. Verify chữ ký
+    // 1. Verify chữ ký ✅
     const secureHash = vnp_Params["vnp_SecureHash"];
+
     const params = Object.keys(vnp_Params)
         .filter(key => key !== "vnp_SecureHash" && key !== "vnp_SecureHashType")
         .sort()
@@ -103,13 +104,8 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
             return result;
         }, {});
 
-    delete params["vnp_SecureHash"];
-    delete params["vnp_SecureHashType"];
-
-    const sortedParams = sortObject(params);
-    const signData = Object.keys(params)
-        .map(key => `${key}=${params[key]}`)
-        .join("&");
+    // ✅ Dùng querystring.stringify — nhất quán với lúc tạo URL
+    const signData = querystring.stringify(params);
     const hmac = crypto.createHmac("sha512", process.env.VNP_HASH_SECRET);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
 
@@ -117,7 +113,7 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
         throw new Error("Chữ ký không hợp lệ");
     }
 
-    // 2. Tìm Payment theo vnp_TxnRef (chính là paymentId)
+    // 2. Tìm Payment theo vnp_TxnRef
     const paymentId = vnp_Params["vnp_TxnRef"];
     const payment = await PaymentModel.findById(paymentId).populate("booking");
     if (!payment) throw new Error("Không tìm thấy thông tin thanh toán");
@@ -125,12 +121,10 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
     const responseCode = vnp_Params["vnp_ResponseCode"];
     const transactionId = vnp_Params["vnp_TransactionNo"];
 
-    // 3. Lưu raw response để debug
     payment.vnpayResponse = vnp_Params;
     payment.transactionId = transactionId;
 
     if (responseCode === "00") {
-        // ✅ Thanh toán thành công
         payment.status = "success";
         await payment.save();
 
@@ -140,7 +134,6 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
         booking.paidAt = new Date();
         await booking.save();
 
-        // 4. Socket notify chủ KS nếu đang online
         if (io && onlineUsers) {
             const ownerId = booking.hotel.owner.toString();
             const socketId = onlineUsers.get(ownerId);
@@ -156,12 +149,9 @@ export const handleVNPayCallbackService = async (vnp_Params, io, onlineUsers) =>
         }
 
         return { success: true, booking, payment };
-
     } else {
-        // ❌ Thanh toán thất bại
         payment.status = "failed";
         await payment.save();
-
         return { success: false, payment };
     }
 };
