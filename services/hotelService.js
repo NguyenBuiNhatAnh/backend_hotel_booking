@@ -27,11 +27,10 @@ export const getAllHotel = async (query) => {
         minPrice,
         maxPrice,
         amenities,
+        rating,
         page = 1,
         limit = 10
     } = query;
-
-    const debugHotels = await HotelModel.find({ status: "approved" }).lean();
 
     // ─── 1. BUILD HOTEL FILTER ───────────────────────────────────────
     const matchHotel = { status: "approved" };
@@ -43,6 +42,11 @@ export const getAllHotel = async (query) => {
     if (amenities) {
         const amenityList = amenities.split(",").map((a) => a.trim().toLowerCase());
         matchHotel.amenities = { $all: amenityList };
+    }
+
+    // ✅ Lọc theo số sao (avgRating >= rating)
+    if (rating) {
+        matchHotel.avgRating = { $gte: Number(rating) };
     }
 
     // Overlap: hotel.maxPrice >= userMin  &&  hotel.minPrice <= userMax
