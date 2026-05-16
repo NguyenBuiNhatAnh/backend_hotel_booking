@@ -29,7 +29,7 @@ export const getAllHotel = async (query) => {
         amenities,
         rating,
         page = 1,
-        limit = 10
+        limit = 12
     } = query;
 
     // ─── 1. BUILD HOTEL FILTER ───────────────────────────────────────
