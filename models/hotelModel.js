@@ -52,14 +52,14 @@ const HotelSchema = new mongoose.Schema({
 
     avgRating: {
         type: Number,
-        default: null,
+        default: 0,
         min: 0,
         max: 5
     },
 
     totalReviews: {
         type: Number,
-        default: null
+        default: 0
     }
 });
 
