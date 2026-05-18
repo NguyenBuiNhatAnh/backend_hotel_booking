@@ -40,7 +40,9 @@ export const getAllHotel = async (query) => {
     }
 
     if (amenities) {
-        const amenityList = amenities.split(",").map((a) => a.trim().toLowerCase());
+        const amenityList = amenities.split(",").map((a) =>
+            new RegExp(`^${a.trim()}$`, "i")
+        );
         matchHotel.amenities = { $all: amenityList };
     }
 
@@ -211,7 +213,7 @@ export const registerHotel = async (data, userId, files) => {
 
     const newHotel = await HotelModel.create({
         ...data,
-        // address đã là object { street, ward, city } từ body
+        amenities: data.amenities?.map(a => a.trim().toLowerCase()) ?? [],
         image: imageUrls,
         owner: userId,
         status: "pending"
@@ -234,6 +236,10 @@ export const updateHotel = async (userId, data) => {
         if (data.address.street !== undefined) updateData["address.street"] = data.address.street;
         if (data.address.ward !== undefined) updateData["address.ward"] = data.address.ward;
         if (data.address.city !== undefined) updateData["address.city"] = data.address.city;
+    }
+
+    if (data.amenities !== undefined) {
+        updateData.amenities = data.amenities.map(a => a.trim().toLowerCase());
     }
 
     const hotel = await HotelModel.findOneAndUpdate(

@@ -157,15 +157,3 @@ export const updateBookingStatus = async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 };
-
-export const updateReview = async (req, res) => {
-    try {
-        const { error } = updateReviewSchema.validate(req.body);
-        if (error) return res.status(400).json({ message: error.message });
-
-        const data = await updateReviewService(req.params.reviewId, req.user.id, req.body);
-        res.status(200).json({ success: true, data });
-    } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
-    }
-};

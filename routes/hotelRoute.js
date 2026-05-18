@@ -1,7 +1,7 @@
 import express from "express"
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { validate } from "../middlewares/validateMiddleware.js";
-import { registerHotelSchema } from "../validator/hotelValidator.js";
+import { registerHotelSchema, updateHotelSchema } from "../validator/hotelValidator.js";
 import { addHotelImages, deleteHotelImage, getHotelById, registerHotel, updateHotel } from "../controllers/hotelController.js";
 import { upload } from "../middlewares/multerMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
@@ -30,6 +30,8 @@ hotelRouter.post(
 hotelRouter.patch(
     "/",
     authMiddleware,
+    authorizeRoles("hotel_manager"),
+    validate(updateHotelSchema),
     updateHotel
 )
 
