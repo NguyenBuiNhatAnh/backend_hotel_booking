@@ -46,7 +46,7 @@ export const updateProfileService = async (userId, data) => {
             new: true,
             runValidators: true
         }
-    ).select("-password"); // không trả password
+    ).select("-password -resetPasswordOtp -resetPasswordOtpExpires -resetPasswordOtpLastSentAt"); // không trả password
 
     if (!updatedUser) {
         throw new Error("User not found");
