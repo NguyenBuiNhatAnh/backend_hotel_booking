@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import http from 'http';
+import "./cron/bookingExpiration.js";
 import 'dotenv/config';
 import connectDatabase from './config/mongodb.js';
 import authRouter from './routes/authRoute.js';
@@ -11,8 +12,8 @@ import userRouter from './routes/userRoute.js';
 import { serviceRouter } from './routes/serviceRoute.js';
 import bookingRouter from './routes/bookingRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
-import "./cron/bookingExpiration.js";
 import reviewRouter from './routes/reviewRoute.js';
+import locationRouter from './routes/locationRoute.js';
 
 // Create Express app and HTTP server
 const app = express();
@@ -23,7 +24,6 @@ const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(express.json());
 app.use(cors());
-
 
 const API_PREFIX = process.env.API_PREFIX;
 
@@ -37,7 +37,7 @@ app.use(`${API_PREFIX}/services`, serviceRouter);
 app.use(`${API_PREFIX}/bookings`, bookingRouter);
 app.use(`${API_PREFIX}/payments`, paymentRouter);
 app.use(`${API_PREFIX}/reviews`, reviewRouter);
-
+app.use(`${API_PREFIX}/locations`, locationRouter);
 
 app.get('/',(req,res)=>{
     res.send("API Working");
