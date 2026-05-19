@@ -18,6 +18,15 @@ const uploadToCloudinary = (fileBuffer) => {
     });
 };
 
+const removeDiacritics = (str) => {
+    return str
+        .normalize("NFD")                         // tách ký tự + dấu
+        .replace(/[\u0300-\u036f]/g, "")          // xóa dấu
+        .replace(/đ/g, "d").replace(/Đ/g, "D")   // xử lý đặc biệt chữ đ
+        .toLowerCase()
+        .trim();
+};
+
 export const getAllHotel = async (query) => {
     const {
         city,
@@ -36,7 +45,11 @@ export const getAllHotel = async (query) => {
     const matchHotel = { status: "approved" };
 
     if (city) {
-        matchHotel["address.city"] = { $regex: city.trim(), $options: "i" };
+        const normalized = removeDiacritics(city); // normalize input người dùng
+        matchHotel["address.normalizedCity"] = {
+            $regex: normalized,
+            $options: "i"   // vẫn giữ để an toàn
+        };
     }
 
     if (amenities) {
@@ -216,7 +229,8 @@ export const registerHotel = async (data, userId, files) => {
         amenities: data.amenities?.map(a => a.trim().toLowerCase()) ?? [],
         image: imageUrls,
         owner: userId,
-        status: "pending"
+        status: "pending",
+        "address.normalizedCity": data.address?.city ? removeDiacritics(data.address.city) : ""
     });
 
     return newHotel;
@@ -235,7 +249,12 @@ export const updateHotel = async (userId, data) => {
     if (data.address) {
         if (data.address.street !== undefined) updateData["address.street"] = data.address.street;
         if (data.address.ward !== undefined) updateData["address.ward"] = data.address.ward;
-        if (data.address.city !== undefined) updateData["address.city"] = data.address.city;
+        if (data.address.city !== undefined) {
+            updateData["address.city"] = data.address.city;
+            // ✅ Thêm dòng này — city thay đổi thì normalizedCity phải đổi theo
+            updateData["address.normalizedCity"] = removeDiacritics(data.address.city);
+        }
+
     }
 
     if (data.amenities !== undefined) {

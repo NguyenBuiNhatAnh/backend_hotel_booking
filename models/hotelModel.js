@@ -9,7 +9,12 @@ const HotelSchema = new mongoose.Schema({
             type: String,
             required: true,
             index: true     // Tỉnh/Thành phố
-        }
+        },
+        normalizedCity: {
+            type: String,
+            required: true,
+            index: true     // Tỉnh/Thành phố
+        },
     },
     description: String,
     image: [
